@@ -70,7 +70,7 @@ For each instruction, the VM does this:
 - [`src/evm/state.c`](src/evm/state.c)
 - [`src/evm/gas_and_storage.c`](src/evm/gas_and_storage.c)
 
-- **Transient storage**: temporary per-transaction storage reset at top-level execution.
+- **Transient storage**: internal temporary per-transaction storage reset at top-level execution. (`TLOAD`/`TSTORE` currently decode to `INVALID_OPCODE` in this VM.)
 - [`src/evm/execution.c`](src/evm/execution.c)
 - [`src/evm/state.c`](src/evm/state.c)
 
@@ -109,7 +109,8 @@ Main files:
 ### `RETURN` vs `REVERT`
 
 - `RETURN`: sets return bytes and completes normally.
-- `REVERT`: sets return bytes but rolls back storage/log changes for the frame and returns `EVM_ERR_REVERT`.
+- `REVERT`: sets return bytes and rolls back storage/log changes for the current frame.
+- Direct frame execution returns `EVM_ERR_REVERT`; inside `CALL`/`CREATE`, it is treated as a recoverable child failure (call success flag `0`) unless an internal error occurs.
 
 - [`src/evm/execution.c`](src/evm/execution.c)
 - [`src/evm/state.c`](src/evm/state.c)
@@ -278,12 +279,12 @@ Goal: understand cross-account execution, precompile internals, and state persis
 - **Opcode**: One-byte instruction (`ADD`, `SLOAD`, `CALL`, etc.); constants in [`include/opcodes.h`](include/opcodes.h), dispatch logic in [`src/evm/execution.c`](src/evm/execution.c).
 - **Program counter (PC)**: Current code offset being executed; stored as `vm.pc` in [`include/evm.h`](include/evm.h) and advanced in [`src/evm/execution.c`](src/evm/execution.c).
 - **Precompile**: Built-in native routine at reserved addresses (1..9 in this project) executed via special handling in [`src/evm/call_and_create.c`](src/evm/call_and_create.c).
-- **Revert**: Exceptional completion that returns data but rolls back frame changes (storage/log side effects for that frame); handled in [`src/evm/execution.c`](src/evm/execution.c).
+- **Revert**: Exceptional completion that returns data but rolls back frame changes (storage/log side effects for that frame); top-level returns `EVM_ERR_REVERT`, while nested call/create treats it as recoverable failure. See [`src/evm/execution.c`](src/evm/execution.c) and [`src/evm/call_and_create.c`](src/evm/call_and_create.c).
 - **Return data**: Byte buffer produced by `RETURN`/`REVERT` or child calls and readable with `RETURNDATA*`; helper functions in [`src/evm/return_data_and_hash.c`](src/evm/return_data_and_hash.c).
 - **Runtime account**: Mutable in-transaction account snapshot used during execution/merging; lifecycle functions in [`src/evm/state.c`](src/evm/state.c).
 - **Stack**: LIFO structure of 256-bit words with max depth 1024; API in [`include/stack.h`](include/stack.h), implementation in [`src/stack.c`](src/stack.c).
 - **Storage**: Persistent key-value state (`SLOAD`/`SSTORE`) associated with an account across runs; modeled and indexed in [`src/evm/state.c`](src/evm/state.c).
-- **Transient storage**: Per-transaction key-value state (`TLOAD`/`TSTORE`) that is cleared at transaction boundaries; managed in [`src/evm/state.c`](src/evm/state.c) and reset in [`src/evm/execution.c`](src/evm/execution.c).
+- **Transient storage**: Per-transaction key-value state tracked in VM/runtime account structures and cleared at transaction boundaries; managed in [`src/evm/state.c`](src/evm/state.c) and reset in [`src/evm/execution.c`](src/evm/execution.c). (`TLOAD`/`TSTORE` opcodes currently return `INVALID_OPCODE`.)
 - **Warm vs cold access**: Access-list state tracking for account/slot lookups that changes gas cost on first vs repeated access; implemented in [`src/evm/state.c`](src/evm/state.c) and charged in [`src/evm/gas_and_storage.c`](src/evm/gas_and_storage.c).
 - **Word (EVM word)**: 32-byte (256-bit) value unit used by stack/storage and many opcode semantics; represented here by [`include/uint256.h`](include/uint256.h).
 - **NanoSol**: Toy Solidity-like language in this repo that compiles to EVM bytecode; public API in [`include/nanosol.h`](include/nanosol.h) and implementation in [`src/nanosol.c`](src/nanosol.c).
