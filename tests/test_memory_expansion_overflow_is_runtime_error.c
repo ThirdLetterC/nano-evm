@@ -9,4 +9,3 @@ void test_memory_expansion_overflow_is_runtime_error() {
   assert(status == EVM_ERR_RUNTIME);
   cleanup(&vm, code);
 }
-

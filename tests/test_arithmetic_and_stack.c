@@ -29,4 +29,3 @@ void test_arithmetic_and_stack() {
   assert_top_u64(&vm, 1);
   cleanup(&vm, code);
 }
-

@@ -13,7 +13,7 @@ void clear_return_data(EVM_State *vm) {
 }
 
 EVM_Status copy_memory_slice(EVM_State *vm, size_t offset, size_t size,
-                                    uint8_t **out_data) {
+                             uint8_t **out_data) {
   if (size == 0) {
     *out_data = nullptr;
     return EVM_OK;
@@ -53,7 +53,7 @@ EVM_Status set_return_data(EVM_State *vm, size_t offset, size_t size) {
 }
 
 EVM_Status set_return_data_bytes(EVM_State *vm, const uint8_t *data,
-                                        size_t size) {
+                                 size_t size) {
   clear_return_data(vm);
   if (size == 0U) {
     return EVM_OK;
@@ -73,7 +73,7 @@ EVM_Status set_return_data_bytes(EVM_State *vm, const uint8_t *data,
 }
 
 EVM_Status copy_return_data_to_memory(EVM_State *vm, size_t offset,
-                                             size_t size) {
+                                      size_t size) {
   if (size == 0U) {
     return EVM_OK;
   }
@@ -122,8 +122,7 @@ uint32_t load_be_u32(const uint8_t *in) {
          ((uint32_t)in[2] << 8U) | (uint32_t)in[3];
 }
 
-void sha256_hash(const uint8_t *data, size_t data_size,
-                        uint8_t out[32]) {
+void sha256_hash(const uint8_t *data, size_t data_size, uint8_t out[32]) {
   static constexpr size_t SHA256_DIGEST_BYTES = 32U;
   static constexpr uint8_t EMPTY_INPUT = 0U;
 
@@ -144,8 +143,7 @@ void sha256_hash(const uint8_t *data, size_t data_size,
   }
 }
 
-void ripemd160_hash(const uint8_t *data, size_t data_size,
-                           uint8_t out[20]) {
+void ripemd160_hash(const uint8_t *data, size_t data_size, uint8_t out[20]) {
   static constexpr size_t RIPEMD160_DIGEST_BYTES = 20U;
   static constexpr uint8_t EMPTY_INPUT = 0U;
 

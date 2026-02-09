@@ -12,4 +12,3 @@ void test_bn254_pairing_api_input_validation() {
   assert(bn254_pairing_check(nullptr, 0U, &out_is_one));
   assert(out_is_one);
 }
-

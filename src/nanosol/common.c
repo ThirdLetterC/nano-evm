@@ -329,10 +329,8 @@ NanoSol_Token lexer_next_token(NanoSol_Lexer *lexer) {
   }
 }
 
-void compiler_set_error(NanoSol_Compiler *compiler,
-                               NanoSol_Status status,
-                               const NanoSol_Token *token, const char *fmt,
-                               ...) {
+void compiler_set_error(NanoSol_Compiler *compiler, NanoSol_Status status,
+                        const NanoSol_Token *token, const char *fmt, ...) {
   if (compiler->status != NANOSOL_OK) {
     return;
   }
@@ -465,13 +463,13 @@ compiler_emit_push_current_frame_slot_address(NanoSol_Compiler *compiler,
 }
 
 bool compiler_emit_store_current_frame_slot(NanoSol_Compiler *compiler,
-                                                   size_t slot_offset) {
+                                            size_t slot_offset) {
   return compiler_emit_push_current_frame_slot_address(compiler, slot_offset) &&
          compiler_emit_opcode(compiler, OPCODE_MSTORE);
 }
 
 bool compiler_emit_load_current_frame_slot(NanoSol_Compiler *compiler,
-                                                  size_t slot_offset) {
+                                           size_t slot_offset) {
   return compiler_emit_push_current_frame_slot_address(compiler, slot_offset) &&
          compiler_emit_opcode(compiler, OPCODE_MLOAD);
 }
@@ -524,7 +522,7 @@ static bool compiler_reserve_locals(NanoSol_Compiler *compiler,
 }
 
 void compiler_pop_locals_to_scope_depth(NanoSol_Compiler *compiler,
-                                               size_t max_scope_depth) {
+                                        size_t max_scope_depth) {
   while (compiler->locals_count > 0 &&
          compiler->locals[compiler->locals_count - 1U].scope_depth >
              max_scope_depth) {
@@ -551,9 +549,8 @@ void compiler_clear_locals(NanoSol_Compiler *compiler) {
   }
 }
 
-ptrdiff_t
-compiler_find_local(const NanoSol_Compiler *compiler,
-                    const NanoSol_Token *token) {
+ptrdiff_t compiler_find_local(const NanoSol_Compiler *compiler,
+                              const NanoSol_Token *token) {
   // Reverse walk preserves lexical shadowing semantics.
   for (size_t i = compiler->locals_count; i > 0; --i) {
     size_t index = i - 1U;
@@ -566,9 +563,8 @@ compiler_find_local(const NanoSol_Compiler *compiler,
   return -1;
 }
 
-bool
-compiler_add_local(NanoSol_Compiler *compiler,
-                   const NanoSol_Token *name_token) {
+bool compiler_add_local(NanoSol_Compiler *compiler,
+                        const NanoSol_Token *name_token) {
   for (size_t i = compiler->locals_count; i > 0; --i) {
     size_t index = i - 1U;
     if (compiler->locals[index].scope_depth < compiler->scope_depth) {
@@ -644,7 +640,7 @@ static bool compiler_reserve_functions(NanoSol_Compiler *compiler,
 }
 
 ptrdiff_t compiler_find_function(const NanoSol_Compiler *compiler,
-                                        const NanoSol_Token *token) {
+                                 const NanoSol_Token *token) {
   for (size_t i = 0; i < compiler->functions_count; ++i) {
     if (compiler->functions[i].name_length == token->length &&
         memcmp(compiler->functions[i].name, &compiler->source[token->start],
@@ -655,9 +651,8 @@ ptrdiff_t compiler_find_function(const NanoSol_Compiler *compiler,
   return -1;
 }
 
-ptrdiff_t
-compiler_find_function_literal(const NanoSol_Compiler *compiler,
-                               const char *name) {
+ptrdiff_t compiler_find_function_literal(const NanoSol_Compiler *compiler,
+                                         const char *name) {
   size_t name_length = strlen(name);
   for (size_t i = 0; i < compiler->functions_count; ++i) {
     if (compiler->functions[i].name_length == name_length &&
@@ -668,10 +663,9 @@ compiler_find_function_literal(const NanoSol_Compiler *compiler,
   return -1;
 }
 
-bool
-compiler_add_function_declaration(NanoSol_Compiler *compiler,
-                                  const NanoSol_Token *name_token,
-                                  size_t parameter_count) {
+bool compiler_add_function_declaration(NanoSol_Compiler *compiler,
+                                       const NanoSol_Token *name_token,
+                                       size_t parameter_count) {
   if (compiler_find_function(compiler, name_token) >= 0) {
     compiler_set_error(compiler, NANOSOL_ERR_SEMANTIC, name_token,
                        "function already declared");
@@ -777,8 +771,7 @@ size_t compiler_new_label(NanoSol_Compiler *compiler) {
   return label_index;
 }
 
-bool compiler_mark_label(NanoSol_Compiler *compiler,
-                                size_t label_index) {
+bool compiler_mark_label(NanoSol_Compiler *compiler, size_t label_index) {
   if (label_index >= compiler->labels_count) {
     compiler_set_error(compiler, NANOSOL_ERR_EMIT, &compiler->current,
                        "invalid label id");
@@ -796,8 +789,7 @@ bool compiler_mark_label(NanoSol_Compiler *compiler,
   return compiler_emit_opcode(compiler, OPCODE_JUMPDEST);
 }
 
-bool compiler_emit_push_label(NanoSol_Compiler *compiler,
-                                     size_t label_index) {
+bool compiler_emit_push_label(NanoSol_Compiler *compiler, size_t label_index) {
   if (label_index >= compiler->labels_count) {
     compiler_set_error(compiler, NANOSOL_ERR_EMIT, &compiler->current,
                        "invalid label id");
@@ -828,7 +820,7 @@ bool compiler_emit_push_label(NanoSol_Compiler *compiler,
 }
 
 bool compiler_emit_jump(NanoSol_Compiler *compiler, size_t label_index,
-                               bool conditional) {
+                        bool conditional) {
   if (!compiler_emit_push_label(compiler, label_index)) {
     return false;
   }
@@ -875,7 +867,7 @@ bool compiler_match(NanoSol_Compiler *compiler, NanoSol_TokenKind kind) {
 }
 
 bool compiler_expect(NanoSol_Compiler *compiler, NanoSol_TokenKind kind,
-                            const char *message) {
+                     const char *message) {
   if (compiler->current.kind == TOKEN_INVALID) {
     compiler_set_error(compiler, NANOSOL_ERR_LEX, &compiler->current, "%s",
                        token_invalid_message(&compiler->current));
@@ -891,15 +883,14 @@ bool compiler_expect(NanoSol_Compiler *compiler, NanoSol_TokenKind kind,
 }
 
 bool compiler_identifier_equals(const NanoSol_Compiler *compiler,
-                                       const NanoSol_Token *token,
-                                       const char *literal) {
+                                const NanoSol_Token *token,
+                                const char *literal) {
   size_t literal_length = strlen(literal);
   return token->length == literal_length &&
          memcmp(&compiler->source[token->start], literal, literal_length) == 0;
 }
 
-bool
-compiler_emit_booleanize_top(NanoSol_Compiler *compiler) {
+bool compiler_emit_booleanize_top(NanoSol_Compiler *compiler) {
   return compiler_emit_opcode(compiler, OPCODE_ISZERO) &&
          compiler_emit_opcode(compiler, OPCODE_ISZERO);
 }
@@ -960,8 +951,8 @@ compiler_find_expression_builtin(const NanoSol_Compiler *compiler,
   return nullptr;
 }
 
-bool
-compiler_emit_reverse_argument_order(NanoSol_Compiler *compiler, size_t arity) {
+bool compiler_emit_reverse_argument_order(NanoSol_Compiler *compiler,
+                                          size_t arity) {
   // Expressions push args left-to-right; many EVM opcodes pop right-to-left.
   if (arity <= 1U) {
     return true;
@@ -983,9 +974,8 @@ compiler_emit_reverse_argument_order(NanoSol_Compiler *compiler, size_t arity) {
   return false;
 }
 
-bool
-compiler_parse_call_arguments(NanoSol_Compiler *compiler,
-                              size_t *out_argument_count) {
+bool compiler_parse_call_arguments(NanoSol_Compiler *compiler,
+                                   size_t *out_argument_count) {
   size_t argument_count = 0;
   // Leaves evaluated argument values on stack in source order.
   if (compiler->current.kind != TOKEN_RPAREN) {
@@ -1022,9 +1012,8 @@ static int compiler_numeric_digit_value(char c, int base) {
   return digit;
 }
 
-bool
-compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
-                                   const NanoSol_Token *token) {
+bool compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
+                                        const NanoSol_Token *token) {
   uint8_t value[32] = {0};
   size_t begin = token->start;
   size_t end = token->start + token->length;
@@ -1094,11 +1083,11 @@ compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
   return true;
 }
 
-bool
-compiler_emit_user_function_call(NanoSol_Compiler *compiler,
-                                 const NanoSol_Token *call_name,
-                                 size_t function_index, size_t argument_count,
-                                 bool discard_result) {
+bool compiler_emit_user_function_call(NanoSol_Compiler *compiler,
+                                      const NanoSol_Token *call_name,
+                                      size_t function_index,
+                                      size_t argument_count,
+                                      bool discard_result) {
   if (function_index >= compiler->functions_count) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, call_name,
                        "invalid function id");
@@ -1143,8 +1132,7 @@ compiler_emit_user_function_call(NanoSol_Compiler *compiler,
   return true;
 }
 
-bool
-compiler_emit_internal_function_return(NanoSol_Compiler *compiler) {
+bool compiler_emit_internal_function_return(NanoSol_Compiler *compiler) {
   if (compiler->current_function >= compiler->functions_count) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
                        &compiler->current, "return outside function");
@@ -1163,8 +1151,7 @@ compiler_emit_internal_function_return(NanoSol_Compiler *compiler) {
          compiler_emit_opcode(compiler, OPCODE_JUMP);
 }
 
-bool
-compiler_emit_external_word_return(NanoSol_Compiler *compiler) {
+bool compiler_emit_external_word_return(NanoSol_Compiler *compiler) {
   // Return the top stack word as ABI memory slice [0, 32).
   return compiler_emit_push_u64(compiler, 0) &&
          compiler_emit_opcode(compiler, OPCODE_MSTORE) &&

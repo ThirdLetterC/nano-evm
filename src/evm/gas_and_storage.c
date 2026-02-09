@@ -61,8 +61,7 @@ EVM_Status maybe_charge_copy_word_gas(EVM_State *vm, size_t data_size) {
   return charge_gas(vm, words_cost);
 }
 
-EVM_Status maybe_charge_create2_hash_gas(EVM_State *vm,
-                                                size_t init_code_size) {
+EVM_Status maybe_charge_create2_hash_gas(EVM_State *vm, size_t init_code_size) {
   uint64_t words = 0;
   EVM_Status status = size_to_words(init_code_size, &words);
   if (status != EVM_OK) {
@@ -77,7 +76,7 @@ EVM_Status maybe_charge_create2_hash_gas(EVM_State *vm,
 }
 
 EVM_Status maybe_charge_initcode_word_gas(EVM_State *vm,
-                                                 size_t init_code_size) {
+                                          size_t init_code_size) {
   uint64_t words = 0;
   EVM_Status status = size_to_words(init_code_size, &words);
   if (status != EVM_OK) {
@@ -92,7 +91,7 @@ EVM_Status maybe_charge_initcode_word_gas(EVM_State *vm,
 }
 
 EVM_Status maybe_charge_account_access_gas(EVM_State *vm,
-                                                  const uint256_t *address) {
+                                           const uint256_t *address) {
   bool was_warm = false;
   EVM_Status status = warm_account_mark(vm, address, &was_warm);
   if (status != EVM_OK) {
@@ -144,7 +143,7 @@ static bool account_is_non_empty_for_call(const EVM_State *vm,
 }
 
 EVM_Status charge_call_extra_gas(EVM_State *vm, bool has_value_transfer,
-                                        const uint256_t *new_account_target) {
+                                 const uint256_t *new_account_target) {
   uint64_t dynamic_call_cost = 0;
   if (has_value_transfer) {
     if (add_u64_overflow(dynamic_call_cost, GAS_CALL_VALUE_TRANSFER,
@@ -165,9 +164,9 @@ EVM_Status charge_call_extra_gas(EVM_State *vm, bool has_value_transfer,
 }
 
 EVM_Status charge_call_forwarded_gas(EVM_State *vm,
-                                            const uint256_t *requested_gas,
-                                            bool has_value_transfer,
-                                            uint64_t *out_forwarded_gas) {
+                                     const uint256_t *requested_gas,
+                                     bool has_value_transfer,
+                                     uint64_t *out_forwarded_gas) {
   EVM_Status status = EVM_OK;
   // EIP-150: child execution gets at most all-but-one-64th of caller gas.
   uint64_t capped_by_eip150 = vm->gas_remaining - (vm->gas_remaining / 64U);
@@ -195,7 +194,7 @@ EVM_Status charge_call_forwarded_gas(EVM_State *vm,
 }
 
 EVM_Status charge_create_forwarded_gas(EVM_State *vm,
-                                              uint64_t *out_forwarded_gas) {
+                                       uint64_t *out_forwarded_gas) {
   uint64_t capped_by_eip150 = vm->gas_remaining - (vm->gas_remaining / 64U);
   EVM_Status status = charge_gas(vm, capped_by_eip150);
   if (status != EVM_OK) {
@@ -205,8 +204,7 @@ EVM_Status charge_create_forwarded_gas(EVM_State *vm,
   return EVM_OK;
 }
 
-EVM_Status
-maybe_charge_code_deposit_gas(EVM_State *vm, size_t code_size) {
+EVM_Status maybe_charge_code_deposit_gas(EVM_State *vm, size_t code_size) {
   if (code_size > MAX_CODE_SIZE) {
     return out_of_gas(vm);
   }
@@ -225,9 +223,9 @@ maybe_charge_code_deposit_gas(EVM_State *vm, size_t code_size) {
 }
 
 EVM_Status copy_to_memory(EVM_State *vm, size_t memory_offset,
-                                 size_t data_offset, size_t data_size,
-                                 const uint8_t *source, size_t source_size,
-                                 bool strict_bounds) {
+                          size_t data_offset, size_t data_size,
+                          const uint8_t *source, size_t source_size,
+                          bool strict_bounds) {
   size_t data_end = 0;
   if (add_size_overflow(data_offset, data_size, &data_end)) {
     if (strict_bounds) {
@@ -274,8 +272,7 @@ EVM_Status copy_to_memory(EVM_State *vm, size_t memory_offset,
   return EVM_OK;
 }
 
-EVM_Status maybe_charge_exp_byte_gas(EVM_State *vm,
-                                            const uint256_t *exponent) {
+EVM_Status maybe_charge_exp_byte_gas(EVM_State *vm, const uint256_t *exponent) {
   uint64_t exponent_bytes = uint256_significant_bytes(exponent);
   uint64_t additional_cost = 0;
   if (mul_u64_overflow(exponent_bytes, GAS_EXP_BYTE, &additional_cost)) {
@@ -318,7 +315,7 @@ static void refund_counter_add(EVM_State *vm, int64_t delta) {
 }
 
 EVM_Status sstore_berlin(EVM_State *vm, const uint256_t *key,
-                                const uint256_t *next) {
+                         const uint256_t *next) {
   size_t index = 0;
   bool exists = storage_find(vm, key, &index);
 
@@ -394,8 +391,8 @@ EVM_Status sstore_berlin(EVM_State *vm, const uint256_t *key,
                      existed_at_transaction_start);
 }
 EVM_Status append_log(EVM_State *vm, const uint256_t topics[4],
-                             size_t topics_count, const uint8_t *data,
-                             size_t data_size) {
+                      size_t topics_count, const uint8_t *data,
+                      size_t data_size) {
   if (vm->logs_count == vm->logs_capacity) {
     EVM_Status status =
         reserve_realloc_array((void **)&vm->logs, &vm->logs_capacity,

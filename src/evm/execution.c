@@ -1720,9 +1720,9 @@ EVM_Status evm_execute(EVM_State *vm) {
         if (runtime_account_read(vm, &vm->address, &self_account_snapshot)) {
           nonce = self_account_snapshot.nonce;
         }
-        beneficiary_is_non_empty =
-            nonce != 0U || !uint256_is_zero(&vm->self_balance) ||
-            vm->code_size != 0U;
+        beneficiary_is_non_empty = nonce != 0U ||
+                                   !uint256_is_zero(&vm->self_balance) ||
+                                   vm->code_size != 0U;
       } else {
         EVM_RuntimeAccount beneficiary_snapshot;
         if (runtime_account_read(vm, &beneficiary, &beneficiary_snapshot)) {

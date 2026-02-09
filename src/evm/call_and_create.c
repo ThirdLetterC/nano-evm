@@ -1017,11 +1017,10 @@ static EVM_Status return_child_gas(EVM_State *vm,
 }
 
 EVM_Status execute_message_call(EVM_State *vm, uint8_t opcode,
-                                       uint64_t gas_forwarded,
-                                       const uint256_t *target,
-                                       const uint256_t *value,
-                                       const uint8_t *input_data,
-                                       size_t input_size, bool *out_success) {
+                                uint64_t gas_forwarded, const uint256_t *target,
+                                const uint256_t *value,
+                                const uint8_t *input_data, size_t input_size,
+                                bool *out_success) {
   // Recoverable child failures return success=0; only internal faults bubble.
   *out_success = false;
   int64_t parent_refund_counter = vm->refund_counter;
@@ -1165,11 +1164,10 @@ EVM_Status execute_message_call(EVM_State *vm, uint8_t opcode,
   return EVM_OK;
 }
 
-EVM_Status
-execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
-               uint64_t create_nonce, const uint8_t *init_code,
-               size_t init_code_size, const uint256_t *endowment,
-               const uint256_t *salt, uint256_t *out_address) {
+EVM_Status execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
+                          uint64_t create_nonce, const uint8_t *init_code,
+                          size_t init_code_size, const uint256_t *endowment,
+                          const uint256_t *salt, uint256_t *out_address) {
   // Same commit/rollback model as CALL, but return value is created address.
   *out_address = uint256_zero();
   int64_t parent_refund_counter = vm->refund_counter;

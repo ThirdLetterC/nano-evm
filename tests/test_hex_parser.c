@@ -14,4 +14,3 @@ void test_hex_parser() {
   assert(code == nullptr);
   assert(size == 0);
 }
-

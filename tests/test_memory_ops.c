@@ -23,4 +23,3 @@ void test_memory_ops() {
   assert_top_u64(&vm, 32);
   cleanup(&vm, code);
 }
-

@@ -1,7 +1,7 @@
 #include "test_helpers.h"
 
-EVM_Status execute_hex(const char *hex, uint64_t gas_limit,
-                              EVM_State *vm, uint8_t **code) {
+EVM_Status execute_hex(const char *hex, uint64_t gas_limit, EVM_State *vm,
+                       uint8_t **code) {
   size_t size = 0;
   EVM_Status status = evm_load_hex(hex, code, &size);
   assert(status == EVM_OK);
@@ -10,11 +10,9 @@ EVM_Status execute_hex(const char *hex, uint64_t gas_limit,
   return evm_execute(vm);
 }
 
-EVM_Status execute_hex_with_calldata(const char *hex,
-                                            const uint8_t *call_data,
-                                            size_t call_data_size,
-                                            uint64_t gas_limit, EVM_State *vm,
-                                            uint8_t **code) {
+EVM_Status execute_hex_with_calldata(const char *hex, const uint8_t *call_data,
+                                     size_t call_data_size, uint64_t gas_limit,
+                                     EVM_State *vm, uint8_t **code) {
   size_t size = 0;
   EVM_Status status = evm_load_hex(hex, code, &size);
   assert(status == EVM_OK);
@@ -26,7 +24,7 @@ EVM_Status execute_hex_with_calldata(const char *hex,
 }
 
 void init_vm_from_hex(const char *hex, uint64_t gas_limit, EVM_State *vm,
-                             uint8_t **code) {
+                      uint8_t **code) {
   size_t size = 0;
   EVM_Status status = evm_load_hex(hex, code, &size);
   assert(status == EVM_OK);
@@ -40,7 +38,7 @@ void cleanup(EVM_State *vm, uint8_t *code) {
 }
 
 EVM_Status execute_toy_source(const char *source, uint64_t gas_limit,
-                                     EVM_State *vm, uint8_t **code) {
+                              EVM_State *vm, uint8_t **code) {
   char error[256] = {0};
   size_t code_size = 0;
   NanoSol_Status compile_status =
@@ -58,8 +56,7 @@ void assert_top_u64(const EVM_State *vm, uint64_t expected) {
   assert(uint256_cmp(&top, &expected_word) == 0);
 }
 
-void assert_top_bytes32(const EVM_State *vm,
-                               const uint8_t expected[32]) {
+void assert_top_bytes32(const EVM_State *vm, const uint8_t expected[32]) {
   uint256_t top = uint256_zero();
   uint8_t bytes[32];
   assert(stack_peek(&vm->stack, &top) == STACK_OK);
@@ -103,8 +100,7 @@ static size_t encode_rlp_nonce(uint64_t nonce, uint8_t out[9]) {
   return payload_size + 1U;
 }
 
-uint256_t derive_create_address_expected(uint64_t sender,
-                                                uint64_t nonce) {
+uint256_t derive_create_address_expected(uint64_t sender, uint64_t nonce) {
   uint8_t encoded_nonce[9];
   size_t nonce_size = encode_rlp_nonce(nonce, encoded_nonce);
 
@@ -128,7 +124,7 @@ uint256_t derive_create_address_expected(uint64_t sender,
 }
 
 void assert_gas_used_ok(const char *hex, uint64_t gas_limit,
-                               uint64_t expected_used) {
+                        uint64_t expected_used) {
   EVM_State vm;
   uint8_t *code = nullptr;
   EVM_Status status = execute_hex(hex, gas_limit, &vm, &code);
@@ -137,4 +133,3 @@ void assert_gas_used_ok(const char *hex, uint64_t gas_limit,
   assert(vm.gas_remaining == gas_limit - expected_used);
   cleanup(&vm, code);
 }
-

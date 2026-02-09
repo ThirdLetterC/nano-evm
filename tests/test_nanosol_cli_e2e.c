@@ -56,10 +56,9 @@ static cli_result_t run_nanosol_cli(const char *source_path,
 
   const char *args = (extra_args == nullptr) ? "" : extra_args;
   char command[2'048];
-  int written = snprintf(command, sizeof(command),
-                         "\"%s\" \"%s\" %s > \"%s\" 2> \"%s\"",
-                         nanosol_cli_path(), source_path, args, stdout_path,
-                         stderr_path);
+  int written =
+      snprintf(command, sizeof(command), "\"%s\" \"%s\" %s > \"%s\" 2> \"%s\"",
+               nanosol_cli_path(), source_path, args, stdout_path, stderr_path);
   assert(written > 0);
   assert((size_t)written < sizeof(command));
 

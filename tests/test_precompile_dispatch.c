@@ -155,4 +155,3 @@ void test_precompile_dispatch() {
   assert_top_u64(&vm, 0);
   cleanup(&vm, code);
 }
-

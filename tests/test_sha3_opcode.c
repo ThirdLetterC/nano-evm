@@ -15,4 +15,3 @@ void test_sha3_opcode() {
   assert_top_bytes32(&vm, empty_keccak);
   cleanup(&vm, code);
 }
-

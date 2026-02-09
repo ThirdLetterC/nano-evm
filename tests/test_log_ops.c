@@ -23,4 +23,3 @@ void test_log_ops() {
   assert(vm.memory_size == 32);
   cleanup(&vm, code);
 }
-

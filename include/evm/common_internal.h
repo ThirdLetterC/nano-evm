@@ -29,7 +29,6 @@ EVM_Status index_table_resize(size_t **table, size_t *capacity,
                               size_t count_hint);
 EVM_Status storage_index_insert(EVM_State *vm, size_t index);
 EVM_Status storage_index_rebuild(EVM_State *vm);
-bool storage_find(const EVM_State *vm, const uint256_t *key,
-                  size_t *out_index);
+bool storage_find(const EVM_State *vm, const uint256_t *key, size_t *out_index);
 
 #endif

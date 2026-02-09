@@ -18,4 +18,3 @@ void test_nanosol_compiler_unterminated_block_comment() {
   assert(code_size == 0);
   assert(strstr(error, "unterminated block comment") != nullptr);
 }
-

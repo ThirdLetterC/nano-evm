@@ -26,4 +26,3 @@ void test_create2_increments_sender_nonce_for_create_addressing() {
 
   cleanup(&vm, code);
 }
-

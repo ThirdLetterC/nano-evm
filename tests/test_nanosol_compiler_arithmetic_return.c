@@ -16,4 +16,3 @@ void test_nanosol_compiler_arithmetic_return() {
   assert_return_u64(&vm, 5);
   cleanup(&vm, code);
 }
-

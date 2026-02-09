@@ -16,4 +16,3 @@ void test_sub_underflow_wraps() {
 
   cleanup(&vm, code);
 }
-

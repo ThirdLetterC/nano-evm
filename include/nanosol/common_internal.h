@@ -46,8 +46,8 @@ bool compiler_match(NanoSol_Compiler *compiler, NanoSol_TokenKind kind);
 bool compiler_expect(NanoSol_Compiler *compiler, NanoSol_TokenKind kind,
                      const char *message);
 bool compiler_identifier_equals(const NanoSol_Compiler *compiler,
-                               const NanoSol_Token *token,
-                               const char *literal);
+                                const NanoSol_Token *token,
+                                const char *literal);
 bool compiler_emit_booleanize_top(NanoSol_Compiler *compiler);
 bool compiler_parse_expression(NanoSol_Compiler *compiler);
 

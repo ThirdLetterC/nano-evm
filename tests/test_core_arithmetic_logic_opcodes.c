@@ -114,4 +114,3 @@ void test_core_arithmetic_logic_opcodes() {
   assert_top_bytes32(&vm, signextend_expected);
   cleanup(&vm, code);
 }
-

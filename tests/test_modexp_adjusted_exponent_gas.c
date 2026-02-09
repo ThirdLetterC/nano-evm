@@ -34,4 +34,3 @@ void test_modexp_adjusted_exponent_gas() {
   assert(vm.return_data_size == 0U);
   cleanup(&vm, code);
 }
-

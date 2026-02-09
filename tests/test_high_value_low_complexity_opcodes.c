@@ -59,4 +59,3 @@ void test_high_value_low_complexity_opcodes() {
   assert(status == EVM_ERR_INVALID_OPCODE);
   cleanup(&vm, code);
 }
-

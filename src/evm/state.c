@@ -13,10 +13,9 @@ uint256_t storage_get(const EVM_State *vm, const uint256_t *key) {
 }
 
 EVM_Status storage_set(EVM_State *vm, const uint256_t *key,
-                              const uint256_t *value, const uint256_t *original,
-                              bool existed_at_start,
-                              const uint256_t *tx_original,
-                              bool existed_at_transaction_start) {
+                       const uint256_t *value, const uint256_t *original,
+                       bool existed_at_start, const uint256_t *tx_original,
+                       bool existed_at_transaction_start) {
   size_t index = 0;
   if (storage_find(vm, key, &index)) {
     vm->storage[index].value = *value;
@@ -165,7 +164,7 @@ static EVM_Status warm_slots_index_rebuild(EVM_State *vm) {
 }
 
 EVM_Status warm_slot_mark(EVM_State *vm, const uint256_t *address,
-                                 const uint256_t *key, bool *was_warm) {
+                          const uint256_t *key, bool *was_warm) {
   *was_warm = warm_slot_find(vm, address, key);
   if (*was_warm) {
     return EVM_OK;
@@ -319,7 +318,7 @@ static EVM_Status warm_accounts_index_rebuild(EVM_State *vm) {
 }
 
 EVM_Status warm_account_mark(EVM_State *vm, const uint256_t *address,
-                                    bool *was_warm) {
+                             bool *was_warm) {
   *was_warm = warm_account_find(vm, address);
   if (*was_warm) {
     return EVM_OK;
@@ -375,8 +374,7 @@ EVM_Status warm_accounts_clone(EVM_State *dst, const EVM_State *src) {
   return warm_accounts_index_rebuild(dst);
 }
 
-void warm_accounts_commit_from_child(EVM_State *parent,
-                                            EVM_State *child) {
+void warm_accounts_commit_from_child(EVM_State *parent, EVM_State *child) {
   free(parent->warm_accounts);
   free(parent->warm_accounts_index_table);
   parent->warm_accounts = child->warm_accounts;
@@ -404,8 +402,7 @@ static bool transient_storage_find(const EVM_State *vm, const uint256_t *key,
   return false;
 }
 
-uint256_t transient_storage_get(const EVM_State *vm,
-                                       const uint256_t *key) {
+uint256_t transient_storage_get(const EVM_State *vm, const uint256_t *key) {
   size_t index = 0;
   if (transient_storage_find(vm, key, &index)) {
     return vm->transient_storage[index].value;
@@ -414,7 +411,7 @@ uint256_t transient_storage_get(const EVM_State *vm,
 }
 
 EVM_Status transient_storage_set(EVM_State *vm, const uint256_t *key,
-                                        const uint256_t *value) {
+                                 const uint256_t *value) {
   size_t index = 0;
   if (transient_storage_find(vm, key, &index)) {
     vm->transient_storage[index].value = *value;
@@ -557,9 +554,8 @@ runtime_account_set_transient_entries(EVM_RuntimeAccount *account,
   return EVM_OK;
 }
 
-EVM_Status runtime_account_ensure(EVM_State *vm,
-                                         const uint256_t *address,
-                                         EVM_RuntimeAccount **out_account) {
+EVM_Status runtime_account_ensure(EVM_State *vm, const uint256_t *address,
+                                  EVM_RuntimeAccount **out_account) {
   size_t index = 0;
   if (runtime_account_find(vm, address, &index)) {
     *out_account = &vm->runtime_accounts[index];
@@ -610,7 +606,7 @@ EVM_Status runtime_account_ensure(EVM_State *vm,
 }
 
 bool runtime_account_read(const EVM_State *vm, const uint256_t *address,
-                                 EVM_RuntimeAccount *out_account) {
+                          EVM_RuntimeAccount *out_account) {
   size_t index = 0;
   if (runtime_account_find(vm, address, &index)) {
     if (vm->runtime_accounts[index].destroyed) {
@@ -663,8 +659,7 @@ static uint256_t runtime_code_hash(const EVM_RuntimeAccount *account) {
   return out;
 }
 
-uint256_t account_balance_get(const EVM_State *vm,
-                                     const uint256_t *address) {
+uint256_t account_balance_get(const EVM_State *vm, const uint256_t *address) {
   if (uint256_cmp(address, &vm->address) == 0) {
     return vm->self_balance;
   }
@@ -677,8 +672,8 @@ uint256_t account_balance_get(const EVM_State *vm,
 }
 
 bool account_code_get(const EVM_State *vm, const uint256_t *address,
-                             const uint8_t **out_code, size_t *out_code_size,
-                             uint256_t *out_balance) {
+                      const uint8_t **out_code, size_t *out_code_size,
+                      uint256_t *out_balance) {
   if (uint256_cmp(address, &vm->address) == 0) {
     if (out_code != nullptr) {
       *out_code = vm->code;
@@ -717,8 +712,7 @@ bool account_code_get(const EVM_State *vm, const uint256_t *address,
   return true;
 }
 
-uint256_t account_code_hash_get(const EVM_State *vm,
-                                       const uint256_t *address) {
+uint256_t account_code_hash_get(const EVM_State *vm, const uint256_t *address) {
   if (uint256_cmp(address, &vm->address) == 0) {
     EVM_RuntimeAccount current;
     memset(&current, 0, sizeof(current));
@@ -735,7 +729,7 @@ uint256_t account_code_hash_get(const EVM_State *vm,
 }
 
 EVM_Status account_credit(EVM_State *vm, const uint256_t *address,
-                                 const uint256_t *delta) {
+                          const uint256_t *delta) {
   if (uint256_is_zero(delta)) {
     return EVM_OK;
   }
@@ -777,8 +771,7 @@ static EVM_Status account_debit(EVM_State *vm, const uint256_t *address,
 }
 
 EVM_Status account_transfer(EVM_State *vm, const uint256_t *from,
-                                   const uint256_t *to,
-                                   const uint256_t *delta) {
+                            const uint256_t *to, const uint256_t *delta) {
   if (delta == nullptr || uint256_is_zero(delta) ||
       uint256_cmp(from, to) == 0) {
     return EVM_OK;
@@ -791,11 +784,10 @@ EVM_Status account_transfer(EVM_State *vm, const uint256_t *from,
   return account_credit(vm, to, delta);
 }
 
-EVM_Status account_deploy_contract(EVM_State *vm,
-                                          const uint256_t *address,
-                                          const uint8_t *runtime_code,
-                                          size_t runtime_code_size,
-                                          const uint256_t *balance) {
+EVM_Status account_deploy_contract(EVM_State *vm, const uint256_t *address,
+                                   const uint8_t *runtime_code,
+                                   size_t runtime_code_size,
+                                   const uint256_t *balance) {
   EVM_RuntimeAccount *account = nullptr;
   EVM_Status status = runtime_account_ensure(vm, address, &account);
   if (status != EVM_OK) {
@@ -814,7 +806,7 @@ EVM_Status account_deploy_contract(EVM_State *vm,
 }
 
 EVM_Status account_nonce_get(EVM_State *vm, const uint256_t *address,
-                                    uint64_t *out_nonce) {
+                             uint64_t *out_nonce) {
   if (out_nonce == nullptr) {
     return EVM_ERR_INTERNAL;
   }
@@ -829,8 +821,7 @@ EVM_Status account_nonce_get(EVM_State *vm, const uint256_t *address,
   return EVM_OK;
 }
 
-EVM_Status account_nonce_increment(EVM_State *vm,
-                                          const uint256_t *address) {
+EVM_Status account_nonce_increment(EVM_State *vm, const uint256_t *address) {
   EVM_RuntimeAccount *account = nullptr;
   EVM_Status status = runtime_account_ensure(vm, address, &account);
   if (status != EVM_OK) {
@@ -846,8 +837,7 @@ EVM_Status account_nonce_increment(EVM_State *vm,
   return EVM_OK;
 }
 
-EVM_Status account_mark_selfdestruct(EVM_State *vm,
-                                            const uint256_t *address) {
+EVM_Status account_mark_selfdestruct(EVM_State *vm, const uint256_t *address) {
   EVM_RuntimeAccount *account = nullptr;
   EVM_Status status = runtime_account_ensure(vm, address, &account);
   if (status != EVM_OK) {
@@ -858,8 +848,7 @@ EVM_Status account_mark_selfdestruct(EVM_State *vm,
   return EVM_OK;
 }
 
-EVM_Status account_mark_destroyed(EVM_State *vm,
-                                         const uint256_t *address) {
+EVM_Status account_mark_destroyed(EVM_State *vm, const uint256_t *address) {
   EVM_RuntimeAccount *account = nullptr;
   EVM_Status status = runtime_account_ensure(vm, address, &account);
   if (status != EVM_OK) {
@@ -992,8 +981,7 @@ EVM_Status runtime_accounts_clone(EVM_State *dst, const EVM_State *src) {
   return EVM_OK;
 }
 
-void runtime_accounts_commit_from_child(EVM_State *parent,
-                                               EVM_State *child) {
+void runtime_accounts_commit_from_child(EVM_State *parent, EVM_State *child) {
   runtime_accounts_release(parent);
   parent->runtime_accounts = child->runtime_accounts;
   parent->runtime_accounts_count = child->runtime_accounts_count;
@@ -1049,7 +1037,7 @@ static EVM_Status frame_set_transient_entries(EVM_State *vm,
 }
 
 EVM_Status runtime_account_load_frame_state(EVM_State *vm,
-                                                   const uint256_t *address) {
+                                            const uint256_t *address) {
   EVM_RuntimeAccount account;
   // Frame-local storage/transient arrays are loaded from the account snapshot.
   if (!runtime_account_read(vm, address, &account)) {
@@ -1070,7 +1058,7 @@ EVM_Status runtime_account_load_frame_state(EVM_State *vm,
 }
 
 EVM_Status runtime_account_store_frame_state(EVM_State *vm,
-                                                    const uint256_t *address) {
+                                             const uint256_t *address) {
   EVM_RuntimeAccount *account = nullptr;
   EVM_Status status = runtime_account_ensure(vm, address, &account);
   if (status != EVM_OK) {
@@ -1173,8 +1161,7 @@ oom:
   return EVM_ERR_OOM;
 }
 
-uint256_t block_hash_lookup(const EVM_State *vm,
-                                   const uint256_t *number) {
+uint256_t block_hash_lookup(const EVM_State *vm, const uint256_t *number) {
   for (size_t i = 0; i < vm->block_hashes_count; ++i) {
     if (uint256_cmp(&vm->block_hashes[i].number, number) == 0) {
       return vm->block_hashes[i].hash;
@@ -1187,8 +1174,7 @@ bool uint256_fits_u64(const uint256_t *value) {
   return value->limbs[1] == 0 && value->limbs[2] == 0 && value->limbs[3] == 0;
 }
 
-EVM_Status ensure_memory_range(EVM_State *vm, size_t offset,
-                                      size_t size) {
+EVM_Status ensure_memory_range(EVM_State *vm, size_t offset, size_t size) {
   if (size == 0) {
     return EVM_OK;
   }

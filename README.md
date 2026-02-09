@@ -24,7 +24,7 @@ explicit status reporting, and:
 - execution-context and chain opcodes:
   `ADDRESS`, `BALANCE`, `ORIGIN`, `CALLER`, `CALLVALUE`, `GASPRICE`,
   `BLOCKHASH`, `COINBASE`, `TIMESTAMP`, `NUMBER`, `PREVRANDAO`, `GASLIMIT`,
-  `CHAINID`, `SELFBALANCE`, `BASEFEE`, `BLOBHASH`, `BLOBBASEFEE`
+  `CHAINID`, `SELFBALANCE`, `BASEFEE`
 - hashing via `SHA3` (Keccak-256)
 - contract I/O introspection and copying:
   `CALLDATALOAD`, `CALLDATASIZE`, `CALLDATACOPY`,
@@ -32,14 +32,15 @@ explicit status reporting, and:
   `RETURNDATASIZE`, `RETURNDATACOPY`
 - stack machine with max depth `1024`
 - linear memory with expansion gas charging
-- key/value storage (`SLOAD`, `SSTORE`) and transient storage (`TLOAD`, `TSTORE`)
-- memory-to-memory copy (`MCOPY`)
+- key/value storage (`SLOAD`, `SSTORE`)
 - `RETURN` and `REVERT` return-data handling
 - call/create/system opcodes:
   `CREATE`, `CALL`, `CALLCODE`, `DELEGATECALL`, `CREATE2`, `STATICCALL`,
   `SELFDESTRUCT`
 - log collection (`LOG0` to `LOG4`)
-- gas accounting with Berlin-style storage warm/cold access and refunds
+- gas accounting with Berlin-style warm/cold access and refunds
+- currently treated as `INVALID_OPCODE` at runtime:
+  `TLOAD`, `TSTORE`, `MCOPY`, `BLOBHASH`, `BLOBBASEFEE`
 - explicit execution status codes
 
 ## Prerequisites
@@ -82,11 +83,14 @@ Default flags come from `build.zig`:
 zig build test
 ```
 
-Run built-in smart-contract examples:
+Run selected built-in smart-contract examples that currently execute successfully:
 
 ```bash
-zig build examples
+zig build examples -- adder storage_roundtrip
 ```
+
+Note: `zig build examples` runs the full registry, including opcode-exerciser
+contracts that intentionally hit currently invalid opcodes.
 
 Debug sanitizer binaries are also available:
 
@@ -159,7 +163,7 @@ zig-out/bin/nano-node reset --state /tmp/erc20.state
 ## NanoSol Toy Language
 
 `nano-solc` compiles a deliberately small Solidity-like language into bytecode
-compatible with this VM. It is intended for quick experiments where you can
+targeting this VM. It is intended for quick experiments where you can
 easily map source constructs to emitted opcodes.
 
 Compile a source file and print bytecode + opcode disassembly:
@@ -194,6 +198,9 @@ Supported language subset:
   `addmod`, `mulmod`, and context helpers such as `address()`, `caller()`,
   `timestamp()`, `number()`, `chainid()`, `gas()`, `msize()`,
   `returndatasize()`
+
+Note: the compiler can emit `TLOAD`/`TSTORE`/`MCOPY`, but the VM currently
+returns `INVALID_OPCODE` when executing them.
 
 Example:
 
@@ -245,6 +252,9 @@ Each built-in contract provides:
 
 Current built-ins:
 
+Some built-ins are opcode exercisers for features not yet enabled in the runtime
+and therefore currently return `INVALID_OPCODE`.
+
 - `adder`: pushes `2` and `3`, then adds them
 - `storage_roundtrip`: writes `slot[0] = 1`, then reads it back
 - `return_one_byte`: returns `0xaa` as return-data
@@ -293,7 +303,6 @@ Current built-ins:
 Example runner:
 
 ```bash
-zig build examples
 zig build examples -- adder storage_roundtrip
 ```
 
@@ -351,8 +360,6 @@ zig build examples -- adder storage_roundtrip
 - `0x46` `CHAINID`
 - `0x47` `SELFBALANCE`
 - `0x48` `BASEFEE`
-- `0x49` `BLOBHASH`
-- `0x4A` `BLOBBASEFEE`
 - `0x50` `POP`
 - `0x51` `MLOAD`
 - `0x52` `MSTORE`
@@ -365,9 +372,6 @@ zig build examples -- adder storage_roundtrip
 - `0x59` `MSIZE`
 - `0x5A` `GAS`
 - `0x5B` `JUMPDEST`
-- `0x5C` `TLOAD`
-- `0x5D` `TSTORE`
-- `0x5E` `MCOPY`
 - `0x5F` `PUSH0`
 - `0xA0` to `0xA4` `LOG0` to `LOG4`
 - `0x60` to `0x7F` `PUSH1` to `PUSH32`
@@ -401,33 +405,30 @@ zig build examples -- adder storage_roundtrip
 - `EXP`: `10 + 50 * significant_exponent_bytes`
 - `SHA3`: `30 + 6 * words`
 - `ADDRESS`, `ORIGIN`, `CALLER`, `CALLVALUE`: `2`
-- `BALANCE`: `100`
+- `BALANCE`: `100` warm, `2600` cold first access (`100 + 2500` surcharge)
 - `CALLDATALOAD`: `3`
 - `CALLDATASIZE`: `2`
 - `CALLDATACOPY`: `3 + 3 * words`
 - `CODESIZE`: `2`
 - `CODECOPY`: `3 + 3 * words`
 - `GASPRICE`: `2`
-- `EXTCODESIZE`, `EXTCODEHASH`: `100`
-- `EXTCODECOPY`: `100 + 3 * words`
+- `EXTCODESIZE`, `EXTCODEHASH`: `100` warm, `2600` cold first access
+- `EXTCODECOPY`: `100 + 3 * words` warm, plus `2500` cold surcharge on first access
 - `RETURNDATASIZE`: `2`
 - `RETURNDATACOPY`: `3 + 3 * words`
 - `BLOCKHASH`: `20`
 - `COINBASE`, `TIMESTAMP`, `NUMBER`, `PREVRANDAO`, `GASLIMIT`, `CHAINID`: `2`
-- `SELFBALANCE`, `BASEFEE`, `BLOBBASEFEE`: `2`
-- `BLOBHASH`: `3`
+- `SELFBALANCE`, `BASEFEE`: `2`
 - `MLOAD`, `MSTORE`, `MSTORE8`: `3`
 - `JUMP`: `8`
 - `JUMPI`: `10`
 - `PC`, `MSIZE`, `GAS`: `2`
 - `JUMPDEST`: `1`
 - `SLOAD`: dynamic (`100` warm / `2100` cold)
-- `SSTORE`: Berlin-style dynamic pricing + refund counter (capped at half gas used on success)
-- `TLOAD`, `TSTORE`: `100`
-- `MCOPY`: `3 + 3 * words`
+- `SSTORE`: Berlin-style dynamic pricing + refund counter (capped at one-fifth gas used on success)
 - `LOGn`: `375 + n * 375 + data_size * 8`
-- `CREATE`: `32000 + 3 * words(init_code)`
-- `CREATE2`: `32000 + 3 * words(init_code) + 6 * words(init_code)`
+- `CREATE`: `32000 + 2 * words(init_code)`
+- `CREATE2`: `32000 + 2 * words(init_code) + 6 * words(init_code)`
 - `CALL`, `CALLCODE`, `DELEGATECALL`, `STATICCALL`: `700`
 - `RETURN`, `REVERT`: `0` (memory expansion still applies)
 - `SELFDESTRUCT`: `5000`

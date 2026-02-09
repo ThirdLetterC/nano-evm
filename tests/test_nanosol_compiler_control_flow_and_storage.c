@@ -25,4 +25,3 @@ void test_nanosol_compiler_control_flow_and_storage() {
   assert_return_u64(&vm, 10);
   cleanup(&vm, code);
 }
-

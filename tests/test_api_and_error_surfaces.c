@@ -87,8 +87,8 @@ void test_api_and_error_surfaces() {
   hex = nullptr;
 
   assert(nanosol_compile_hex("contract Broken { function main() { x = 1; } }",
-                             &hex, error, sizeof(error)) ==
-         NANOSOL_ERR_SEMANTIC);
+                             &hex, error,
+                             sizeof(error)) == NANOSOL_ERR_SEMANTIC);
   assert(hex == nullptr);
   assert(error[0] != '\0');
 

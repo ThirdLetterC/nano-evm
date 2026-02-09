@@ -8,4 +8,3 @@ void test_div_by_zero_returns_zero() {
   assert_top_u64(&vm, 0);
   cleanup(&vm, code);
 }
-

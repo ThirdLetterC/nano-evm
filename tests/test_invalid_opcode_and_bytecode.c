@@ -13,4 +13,3 @@ void test_invalid_opcode_and_bytecode() {
   assert(status == EVM_ERR_INVALID_BYTECODE);
   cleanup(&vm, code);
 }
-

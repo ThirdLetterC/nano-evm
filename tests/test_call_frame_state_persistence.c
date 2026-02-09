@@ -59,4 +59,3 @@ void test_call_frame_state_persistence() {
   assert_top_u64(&vm, 1);
   cleanup(&vm, code);
 }
-

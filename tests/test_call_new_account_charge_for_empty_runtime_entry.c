@@ -18,4 +18,3 @@ void test_call_new_account_charge_for_empty_runtime_entry() {
 
   cleanup(&vm, code);
 }
-

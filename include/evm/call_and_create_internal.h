@@ -5,8 +5,7 @@
 #include "evm/return_data_internal.h"
 
 EVM_Status execute_message_call(EVM_State *vm, uint8_t opcode,
-                                uint64_t gas_forwarded,
-                                const uint256_t *target,
+                                uint64_t gas_forwarded, const uint256_t *target,
                                 const uint256_t *value,
                                 const uint8_t *input_data, size_t input_size,
                                 bool *out_success);

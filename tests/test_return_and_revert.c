@@ -23,4 +23,3 @@ void test_return_and_revert() {
   assert(vm.gas_remaining == 0);
   cleanup(&vm, code);
 }
-

@@ -2,8 +2,7 @@
 
 static EVM_Status execute_hex_in_static_context(const char *hex,
                                                 uint64_t gas_limit,
-                                                EVM_State *vm,
-                                                uint8_t **code) {
+                                                EVM_State *vm, uint8_t **code) {
   size_t size = 0;
   EVM_Status status = evm_load_hex(hex, code, &size);
   assert(status == EVM_OK);
@@ -64,8 +63,8 @@ void test_stack_and_static_context_errors() {
   assert(status == EVM_ERR_WRITE_PROTECTION);
   cleanup(&vm, code);
 
-  status = execute_hex_in_static_context("5f5f5f5f60015f5ff1", 30'000U, &vm,
-                                         &code);
+  status =
+      execute_hex_in_static_context("5f5f5f5f60015f5ff1", 30'000U, &vm, &code);
   assert(status == EVM_ERR_WRITE_PROTECTION);
   cleanup(&vm, code);
 }

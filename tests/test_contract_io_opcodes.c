@@ -76,4 +76,3 @@ void test_contract_io_opcodes() {
   assert(status == EVM_ERR_INVALID_OPCODE);
   cleanup(&vm, code);
 }
-

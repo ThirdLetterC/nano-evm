@@ -245,8 +245,7 @@ bool mul_size_overflow(size_t a, size_t b, size_t *out) {
 }
 
 EVM_Status reserve_realloc_array(void **buffer, size_t *capacity,
-                                        size_t min_capacity,
-                                        size_t element_size) {
+                                 size_t min_capacity, size_t element_size) {
   if (buffer == nullptr || capacity == nullptr || element_size == 0U) {
     return EVM_ERR_INTERNAL;
   }
@@ -295,8 +294,7 @@ size_t hash_uint256_value(const uint256_t *value) {
   return (size_t)hash;
 }
 
-size_t hash_access_entry(const uint256_t *address,
-                                const uint256_t *key) {
+size_t hash_access_entry(const uint256_t *address, const uint256_t *key) {
   uint64_t hash = 0x243f'6a88'85a3'08d3U;
   for (size_t i = 0; i < 4U; ++i) {
     hash ^= hash_mix64(address->limbs[i] + 0x9e37'79b9'7f4a'7c15U +
@@ -310,7 +308,7 @@ size_t hash_access_entry(const uint256_t *address,
 }
 
 EVM_Status index_table_resize(size_t **table, size_t *capacity,
-                                     size_t entries_count) {
+                              size_t entries_count) {
   if (table == nullptr || capacity == nullptr) {
     return EVM_ERR_INTERNAL;
   }
@@ -428,7 +426,7 @@ EVM_Status storage_index_rebuild(EVM_State *vm) {
 }
 
 bool storage_find(const EVM_State *vm, const uint256_t *key,
-                         size_t *index_out) {
+                  size_t *index_out) {
   if (storage_index_lookup(vm, key, index_out)) {
     return true;
   }

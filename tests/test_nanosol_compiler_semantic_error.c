@@ -17,4 +17,3 @@ void test_nanosol_compiler_semantic_error() {
   assert(code_size == 0);
   assert(error[0] != '\0');
 }
-

@@ -18,9 +18,8 @@
 EVM_Status execute_hex(const char *hex, uint64_t gas_limit, EVM_State *vm,
                        uint8_t **code);
 EVM_Status execute_hex_with_calldata(const char *hex, const uint8_t *call_data,
-                                     size_t call_data_size,
-                                     uint64_t gas_limit, EVM_State *vm,
-                                     uint8_t **code);
+                                     size_t call_data_size, uint64_t gas_limit,
+                                     EVM_State *vm, uint8_t **code);
 void init_vm_from_hex(const char *hex, uint64_t gas_limit, EVM_State *vm,
                       uint8_t **code);
 void cleanup(EVM_State *vm, uint8_t *code);

@@ -247,7 +247,8 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   assert_top_u64(&vm, 0);
   cleanup(&vm, code);
 
-  init_vm_from_hex("6000600060006000600060116064f15060113b00", 80'000, &vm, &code);
+  init_vm_from_hex("6000600060006000600060116064f15060113b00", 80'000, &vm,
+                   &code);
   vm.external_accounts = &selfdestruct_account;
   vm.external_accounts_count = 1;
   status = evm_execute(&vm);

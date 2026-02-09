@@ -203,7 +203,8 @@ bool compiler_parse_statement(NanoSol_Compiler *compiler) {
     }
 
     // Canonical while lowering:
-    // loop_start: eval condition -> jump loop_end on false -> body -> jump start.
+    // loop_start: eval condition -> jump loop_end on false -> body -> jump
+    // start.
     if (!compiler_mark_label(compiler, loop_start)) {
       return false;
     }

@@ -140,7 +140,7 @@ static void bn254_pair_fp2_mul(bn254_pair_fp2_t *out, const bn254_pair_fp2_t *a,
   mpz_t tx;
   mpz_t ty;
   mpz_t tmp;
-  mpz_inits(tx, ty, tmp, (mpz_ptr)nullptr);
+  mpz_inits(tx, ty, tmp, (mpz_ptr) nullptr);
 
   mpz_mul(tx, a->x, b->y);
   mpz_mul(tmp, b->x, a->y);
@@ -155,7 +155,7 @@ static void bn254_pair_fp2_mul(bn254_pair_fp2_t *out, const bn254_pair_fp2_t *a,
   mpz_set(out->x, tx);
   mpz_set(out->y, ty);
 
-  mpz_clears(tx, ty, tmp, (mpz_ptr)nullptr);
+  mpz_clears(tx, ty, tmp, (mpz_ptr) nullptr);
 }
 
 static void bn254_pair_fp2_mul_scalar(bn254_pair_fp2_t *out,
@@ -174,7 +174,7 @@ static void bn254_pair_fp2_mul_xi(bn254_pair_fp2_t *out,
   // xi = i + 9.
   mpz_t tx;
   mpz_t ty;
-  mpz_inits(tx, ty, (mpz_ptr)nullptr);
+  mpz_inits(tx, ty, (mpz_ptr) nullptr);
 
   mpz_mul_ui(tx, a->x, 9U);
   mpz_add(tx, tx, a->y);
@@ -187,7 +187,7 @@ static void bn254_pair_fp2_mul_xi(bn254_pair_fp2_t *out,
   mpz_set(out->x, tx);
   mpz_set(out->y, ty);
 
-  mpz_clears(tx, ty, (mpz_ptr)nullptr);
+  mpz_clears(tx, ty, (mpz_ptr) nullptr);
 }
 
 static void bn254_pair_fp2_square(bn254_pair_fp2_t *out,
@@ -196,7 +196,7 @@ static void bn254_pair_fp2_square(bn254_pair_fp2_t *out,
   mpz_t t1;
   mpz_t t2;
   mpz_t ty;
-  mpz_inits(t1, t2, ty, (mpz_ptr)nullptr);
+  mpz_inits(t1, t2, ty, (mpz_ptr) nullptr);
 
   mpz_sub(t1, a->y, a->x);
   mpz_add(t2, a->x, a->y);
@@ -210,7 +210,7 @@ static void bn254_pair_fp2_square(bn254_pair_fp2_t *out,
   mpz_set(out->x, t1);
   mpz_set(out->y, ty);
 
-  mpz_clears(t1, t2, ty, (mpz_ptr)nullptr);
+  mpz_clears(t1, t2, ty, (mpz_ptr) nullptr);
 }
 
 static bool bn254_pair_fp2_invert(bn254_pair_fp2_t *out,
@@ -219,7 +219,7 @@ static bool bn254_pair_fp2_invert(bn254_pair_fp2_t *out,
   mpz_t t;
   mpz_t t2;
   mpz_t inv;
-  mpz_inits(t, t2, inv, (mpz_ptr)nullptr);
+  mpz_inits(t, t2, inv, (mpz_ptr) nullptr);
 
   mpz_mul(t, a->y, a->y);
   mpz_mul(t2, a->x, a->x);
@@ -227,7 +227,7 @@ static bool bn254_pair_fp2_invert(bn254_pair_fp2_t *out,
   bn254_pair_mod(t, field_modulus);
 
   if (mpz_invert(inv, t, field_modulus) == 0) {
-    mpz_clears(t, t2, inv, (mpz_ptr)nullptr);
+    mpz_clears(t, t2, inv, (mpz_ptr) nullptr);
     return false;
   }
 
@@ -238,7 +238,7 @@ static bool bn254_pair_fp2_invert(bn254_pair_fp2_t *out,
   mpz_mul(out->y, a->y, inv);
   bn254_pair_mod(out->y, field_modulus);
 
-  mpz_clears(t, t2, inv, (mpz_ptr)nullptr);
+  mpz_clears(t, t2, inv, (mpz_ptr) nullptr);
   return true;
 }
 
@@ -767,10 +767,10 @@ static bool bn254_pair_g1_make_affine(bn254_pair_g1_t *point,
   mpz_t z_inv;
   mpz_t t;
   mpz_t z_inv_sq;
-  mpz_inits(z_inv, t, z_inv_sq, (mpz_ptr)nullptr);
+  mpz_inits(z_inv, t, z_inv_sq, (mpz_ptr) nullptr);
 
   if (mpz_invert(z_inv, point->z, field_modulus) == 0) {
-    mpz_clears(z_inv, t, z_inv_sq, (mpz_ptr)nullptr);
+    mpz_clears(z_inv, t, z_inv_sq, (mpz_ptr) nullptr);
     return false;
   }
 
@@ -787,7 +787,7 @@ static bool bn254_pair_g1_make_affine(bn254_pair_g1_t *point,
   mpz_set_ui(point->z, 1U);
   mpz_set_ui(point->t, 1U);
 
-  mpz_clears(z_inv, t, z_inv_sq, (mpz_ptr)nullptr);
+  mpz_clears(z_inv, t, z_inv_sq, (mpz_ptr) nullptr);
   return true;
 }
 
@@ -799,7 +799,7 @@ static bool bn254_pair_g1_is_on_curve(const bn254_pair_g1_t *point,
 
   mpz_t yy;
   mpz_t xxx;
-  mpz_inits(yy, xxx, (mpz_ptr)nullptr);
+  mpz_inits(yy, xxx, (mpz_ptr) nullptr);
 
   mpz_mul(yy, point->y, point->y);
   bn254_pair_mod(yy, field_modulus);
@@ -812,7 +812,7 @@ static bool bn254_pair_g1_is_on_curve(const bn254_pair_g1_t *point,
   bn254_pair_mod(xxx, field_modulus);
 
   bool is_on_curve = (mpz_cmp(yy, xxx) == 0);
-  mpz_clears(yy, xxx, (mpz_ptr)nullptr);
+  mpz_clears(yy, xxx, (mpz_ptr) nullptr);
   return is_on_curve;
 }
 

@@ -6,8 +6,7 @@
 EVM_Status maybe_charge_sha3_word_gas(EVM_State *vm, size_t data_size);
 EVM_Status maybe_charge_copy_word_gas(EVM_State *vm, size_t data_size);
 EVM_Status maybe_charge_create2_hash_gas(EVM_State *vm, size_t init_code_size);
-EVM_Status maybe_charge_initcode_word_gas(EVM_State *vm,
-                                           size_t init_code_size);
+EVM_Status maybe_charge_initcode_word_gas(EVM_State *vm, size_t init_code_size);
 EVM_Status maybe_charge_account_access_gas(EVM_State *vm,
                                            const uint256_t *address);
 EVM_Status maybe_charge_selfdestruct_access_gas(EVM_State *vm,
