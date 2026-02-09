@@ -31,7 +31,7 @@ static constexpr uint64_t GAS_ACCOUNT_ACCESS_COLD_SURCHARGE =
     GAS_ACCOUNT_ACCESS_COLD - GAS_EXTERNAL;
 static constexpr uint64_t GAS_TLOAD = 100;
 static constexpr uint64_t GAS_TSTORE = 100;
-static constexpr uint64_t GAS_CALL = 700;
+static constexpr uint64_t GAS_CALL = GAS_EXTERNAL;
 static constexpr uint64_t GAS_CALL_VALUE_TRANSFER = 9'000;
 static constexpr uint64_t GAS_CALL_NEW_ACCOUNT = 25'000;
 static constexpr uint64_t GAS_CALL_STIPEND = 2'300;

@@ -104,6 +104,19 @@ EVM_Status maybe_charge_account_access_gas(EVM_State *vm,
   return charge_gas(vm, GAS_ACCOUNT_ACCESS_COLD_SURCHARGE);
 }
 
+EVM_Status maybe_charge_selfdestruct_access_gas(EVM_State *vm,
+                                                const uint256_t *address) {
+  bool was_warm = false;
+  EVM_Status status = warm_account_mark(vm, address, &was_warm);
+  if (status != EVM_OK) {
+    return status;
+  }
+  if (was_warm) {
+    return EVM_OK;
+  }
+  return charge_gas(vm, GAS_ACCOUNT_ACCESS_COLD);
+}
+
 static bool account_is_non_empty_for_call(const EVM_State *vm,
                                           const uint256_t *address) {
   // Used for the CALL "new account with value" surcharge.

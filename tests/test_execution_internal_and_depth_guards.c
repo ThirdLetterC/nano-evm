@@ -40,6 +40,6 @@ void test_execution_internal_and_depth_guards() {
   status = evm_execute(&vm);
   assert(status == EVM_OK);
   assert_top_u64(&vm, 0U);
-  assert(runtime_account_nonce_is(&vm, &vm.address, 1U));
+  assert(!runtime_account_nonce_is(&vm, &vm.address, 1U));
   cleanup(&vm, code);
 }

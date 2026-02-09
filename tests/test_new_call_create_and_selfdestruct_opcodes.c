@@ -86,6 +86,15 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   status = evm_execute(&vm);
   assert(status == EVM_OK);
   assert_top_u64(&vm, 0);
+  assert(vm.gas_remaining == 124U);
+  bool collision_target_is_warm = false;
+  for (size_t i = 0; i < vm.warm_accounts_count; ++i) {
+    if (uint256_cmp(&vm.warm_accounts[i], &collision_address) == 0) {
+      collision_target_is_warm = true;
+      break;
+    }
+  }
+  assert(collision_target_is_warm);
   cleanup(&vm, code);
 
   init_vm_from_hex("5f5f5ff0", 40'000, &vm, &code);
@@ -111,14 +120,14 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   status = evm_execute(&vm);
   assert(status == EVM_OK);
   assert_top_u64(&vm, 0);
-  bool found_caller_account = false;
+  bool caller_nonce_incremented = false;
   for (size_t i = 0; i < vm.runtime_accounts_count; ++i) {
-    if (uint256_cmp(&vm.runtime_accounts[i].address, &vm.address) == 0) {
-      assert(vm.runtime_accounts[i].nonce == 1U);
-      found_caller_account = true;
+    if (uint256_cmp(&vm.runtime_accounts[i].address, &vm.address) == 0 &&
+        vm.runtime_accounts[i].nonce == 1U) {
+      caller_nonce_incremented = true;
     }
   }
-  assert(found_caller_account);
+  assert(!caller_nonce_incremented);
   cleanup(&vm, code);
 
   status = execute_hex("6060600053600060015360606002536000600353605360045360606"
@@ -168,7 +177,7 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   vm.external_accounts_count = 1;
   status = evm_execute(&vm);
   assert(status == EVM_OK);
-  assert(vm.gas_remaining == 3'862);
+  assert(vm.gas_remaining == 5'062);
   cleanup(&vm, code);
 
   status = execute_hex("602a60015d60015c", 300, &vm, &code);

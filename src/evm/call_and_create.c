@@ -1202,19 +1202,22 @@ execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
     created_address = derive_create_address(vm, create_nonce);
   }
 
+  EVM_Status status = EVM_OK;
+  [[maybe_unused]] bool was_warm = false;
+  status = warm_account_mark(vm, &created_address, &was_warm);
+  if (status != EVM_OK) {
+    return status;
+  }
+
   EVM_RuntimeAccount existing_account;
   bool account_exists =
       runtime_account_read(vm, &created_address, &existing_account);
   if (account_exists &&
       (existing_account.nonce != 0U || existing_account.code_size > 0U)) {
-    EVM_Status status = set_return_data_bytes(vm, nullptr, 0U);
-    if (status != EVM_OK) {
-      return status;
-    }
-    return return_child_gas(vm, gas_forwarded);
+    return set_return_data_bytes(vm, nullptr, 0U);
   }
 
-  EVM_Status status = sync_current_account_runtime_state(vm);
+  status = sync_current_account_runtime_state(vm);
   if (status != EVM_OK) {
     return status;
   }

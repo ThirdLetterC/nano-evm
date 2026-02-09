@@ -1376,6 +1376,20 @@ EVM_Status evm_execute(EVM_State *vm) {
         return status;
       }
 
+      if (vm->call_depth >= EVM_MAX_CALL_DEPTH ||
+          data_size > MAX_INITCODE_SIZE) {
+        status = set_return_data_bytes(vm, nullptr, 0U);
+        if (status != EVM_OK) {
+          return status;
+        }
+        uint256_t failed_address = uint256_zero();
+        status = push_uint256(vm, &failed_address);
+        if (status != EVM_OK) {
+          return status;
+        }
+        break;
+      }
+
       // CREATE failure due to insufficient balance is non-exceptional.
       if (uint256_cmp(&vm->self_balance, &endowment) < 0) {
         status = set_return_data_bytes(vm, nullptr, 0U);
@@ -1694,7 +1708,7 @@ EVM_Status evm_execute(EVM_State *vm) {
         return status;
       }
       beneficiary = normalize_address_word(&beneficiary);
-      status = maybe_charge_account_access_gas(vm, &beneficiary);
+      status = maybe_charge_selfdestruct_access_gas(vm, &beneficiary);
       if (status != EVM_OK) {
         return status;
       }

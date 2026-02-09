@@ -10,18 +10,17 @@ void test_call_value_stipend_does_not_mint_gas() {
 
   EVM_Status status = evm_execute(&vm);
   assert(status == EVM_OK);
-  assert(vm.gas_remaining == 2'300U);
+  assert(vm.gas_remaining == 2'900U);
   assert(stack_depth(&vm.stack) == 2U);
 
   uint256_t gas_after_call = uint256_zero();
   uint256_t success_flag = uint256_zero();
   uint256_t one_word = uint256_from_u64(1U);
-  uint256_t stipend_word = uint256_from_u64(2'300U);
+  uint256_t gas_word = uint256_from_u64(2'900U);
   assert(stack_pop(&vm.stack, &gas_after_call) == STACK_OK);
   assert(stack_pop(&vm.stack, &success_flag) == STACK_OK);
-  assert(uint256_cmp(&gas_after_call, &stipend_word) == 0);
+  assert(uint256_cmp(&gas_after_call, &gas_word) == 0);
   assert(uint256_cmp(&success_flag, &one_word) == 0);
 
   cleanup(&vm, code);
 }
-

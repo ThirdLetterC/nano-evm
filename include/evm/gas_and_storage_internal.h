@@ -10,6 +10,8 @@ EVM_Status maybe_charge_initcode_word_gas(EVM_State *vm,
                                            size_t init_code_size);
 EVM_Status maybe_charge_account_access_gas(EVM_State *vm,
                                            const uint256_t *address);
+EVM_Status maybe_charge_selfdestruct_access_gas(EVM_State *vm,
+                                                const uint256_t *address);
 EVM_Status charge_call_extra_gas(EVM_State *vm, bool has_value_transfer,
                                  const uint256_t *new_account_target);
 
