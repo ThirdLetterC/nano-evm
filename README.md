@@ -458,6 +458,7 @@ or code-deposit gas cannot be paid.
 ## Acknowledgements
 
 - The Ethereum ecosystem and specifications for EVM opcode behavior and execution model guidance.
+- Gavin Wood's Ethereum Yellow Paper: [`Ethereum: A Secure Decentralised Generalised Transaction Ledger`](https://ethereum.github.io/yellowpaper/paper.pdf).
 - [`evm.codes`](https://www.evm.codes/) as a practical opcode reference during implementation and testing.
 - `src/keccak.c` attribution: Pawel Bylica (`ethash` Keccak implementation, Apache-2.0) and Ronny Van Keer (Keccak-f[1600] reference implementation, CC0/Public Domain).
 - The maintainers of OpenSSL (`libcrypto`), `libsecp256k1`, GMP, and BLAKE2 (`libb2`) used by this project.
