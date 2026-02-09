@@ -1264,15 +1264,20 @@ EVM_Status execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
 
   EVM_Status child_status = evm_execute(&child);
   if (child_status == EVM_OK) {
-    EVM_Status deposit_status =
-        maybe_charge_code_deposit_gas(&child, child.return_data_size);
-    if (deposit_status != EVM_OK) {
+    bool reject_ef_prefix = child.return_data_size > 0U &&
+                            child.return_data != nullptr &&
+                            child.return_data[0] == 0xefU;
+
+    if (reject_ef_prefix) {
+      // EIP-3541: deployed runtime code may not start with 0xef.
       child_status = EVM_ERR_OUT_OF_GAS;
       child.gas_remaining = 0;
-      EVM_Status clear_status = set_return_data_bytes(&child, nullptr, 0U);
-      if (clear_status != EVM_OK) {
-        evm_destroy(&child);
-        return clear_status;
+    } else {
+      EVM_Status deposit_status =
+          maybe_charge_code_deposit_gas(&child, child.return_data_size);
+      if (deposit_status != EVM_OK) {
+        child_status = EVM_ERR_OUT_OF_GAS;
+        child.gas_remaining = 0;
       }
     }
   }

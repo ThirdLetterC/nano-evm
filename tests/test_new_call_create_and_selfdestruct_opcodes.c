@@ -84,6 +84,26 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   assert_top_u64(&vm, 1);
   cleanup(&vm, code);
 
+  // CREATE code-deposit failure must keep initcode returndata.
+  status = execute_hex("600a600c5f39600a5f5ff00060aa60005360016000f3", 32'200,
+                       &vm, &code);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 0);
+  assert(vm.return_data_size == 1U);
+  assert(vm.return_data != nullptr);
+  assert(vm.return_data[0] == 0xaaU);
+  cleanup(&vm, code);
+
+  // EIP-3541: runtime code beginning with 0xef is rejected.
+  status = execute_hex("600a600c5f39600a5f5ff00060ef60005360016000f3", 50'000,
+                       &vm, &code);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 0);
+  assert(vm.return_data_size == 1U);
+  assert(vm.return_data != nullptr);
+  assert(vm.return_data[0] == 0xefU);
+  cleanup(&vm, code);
+
   init_vm_from_hex("5f5f5ff0", 40'000, &vm, &code);
   vm.address = uint256_from_u64(0x77);
   uint256_t collision_address = derive_create_address_expected(0x77, 0U);

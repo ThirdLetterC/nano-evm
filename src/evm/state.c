@@ -659,6 +659,21 @@ static uint256_t runtime_code_hash(const EVM_RuntimeAccount *account) {
   return out;
 }
 
+static bool runtime_account_is_empty(const EVM_RuntimeAccount *account) {
+  if (account == nullptr) {
+    return true;
+  }
+  if (account->nonce != 0U || !uint256_is_zero(&account->balance)) {
+    return false;
+  }
+
+  uint256_t code_hash = runtime_code_hash(account);
+  const union ethash_hash256 empty_code_hash = ethash_keccak256(nullptr, 0U);
+  uint256_t empty_hash_word = uint256_zero();
+  uint256_from_be_bytes(&empty_hash_word, empty_code_hash.bytes);
+  return uint256_cmp(&code_hash, &empty_hash_word) == 0;
+}
+
 uint256_t account_balance_get(const EVM_State *vm, const uint256_t *address) {
   if (uint256_cmp(address, &vm->address) == 0) {
     return vm->self_balance;
@@ -716,13 +731,24 @@ uint256_t account_code_hash_get(const EVM_State *vm, const uint256_t *address) {
   if (uint256_cmp(address, &vm->address) == 0) {
     EVM_RuntimeAccount current;
     memset(&current, 0, sizeof(current));
+    current.balance = vm->self_balance;
     current.code = vm->code;
     current.code_size = vm->code_size;
+    EVM_RuntimeAccount snapshot;
+    if (runtime_account_read(vm, &vm->address, &snapshot)) {
+      current.nonce = snapshot.nonce;
+    }
+    if (runtime_account_is_empty(&current)) {
+      return uint256_zero();
+    }
     return runtime_code_hash(&current);
   }
 
   EVM_RuntimeAccount account;
   if (!runtime_account_read(vm, address, &account)) {
+    return uint256_zero();
+  }
+  if (runtime_account_is_empty(&account)) {
     return uint256_zero();
   }
   return runtime_code_hash(&account);

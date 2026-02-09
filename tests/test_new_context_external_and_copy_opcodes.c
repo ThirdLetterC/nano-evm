@@ -12,6 +12,13 @@ void test_new_context_external_and_copy_opcodes() {
       .code_size = sizeof(ext_code),
       .code_hash = uint256_zero(),
   };
+  EVM_ExternalAccount empty_account = {
+      .address = uint256_from_u64(0x22),
+      .balance = uint256_zero(),
+      .code = nullptr,
+      .code_size = 0,
+      .code_hash = uint256_zero(),
+  };
 
   EVM_BlockHashEntry block_hash = {
       .number = uint256_from_u64(999),
@@ -78,6 +85,14 @@ void test_new_context_external_and_copy_opcodes() {
   const union ethash_hash256 code_hash =
       ethash_keccak256(ext_code, sizeof(ext_code));
   assert_top_bytes32(&vm, code_hash.bytes);
+  cleanup(&vm, code);
+
+  init_vm_from_hex("60223f", 3'000, &vm, &code);
+  vm.external_accounts = &empty_account;
+  vm.external_accounts_count = 1;
+  status = evm_execute(&vm);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 0);
   cleanup(&vm, code);
 
   init_vm_from_hex("303f00", 500, &vm, &code);

@@ -443,6 +443,8 @@ child returndata via `RETURNDATA*`. `CALL` value transfers update balances on su
 Forwarded call gas is capped by the EIP-150 63/64 rule, and value-bearing `CALL`/`CALLCODE`
 receive the 2300 gas stipend.
 For `CREATE`/`CREATE2`, returndata is cleared on success and preserved on failure.
+Deployment is rejected when runtime code starts with `0xef`, exceeds max code size,
+or code-deposit gas cannot be paid.
 
 ## Project Layout
 
