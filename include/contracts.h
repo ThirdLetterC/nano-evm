@@ -11,6 +11,7 @@ typedef struct {
   const char *description;
   const char *bytecode_hex;
   uint64_t suggested_gas_limit;
+  EVM_Status expected_status;
 } EVM_ContractSpec;
 
 [[nodiscard]] const EVM_ContractSpec *contracts_list(size_t *out_count);

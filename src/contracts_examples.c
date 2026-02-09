@@ -10,6 +10,7 @@
 static int run_contract(const EVM_ContractSpec *spec) {
   uint8_t *code = nullptr;
   size_t code_size = 0;
+  const EVM_Status expected_status = spec->expected_status;
   EVM_Status status = contracts_load_code(spec, &code, &code_size);
   if (status != EVM_OK) {
     fprintf(stderr, "[%s] code load failed: %s\n", spec->name,
@@ -31,6 +32,7 @@ static int run_contract(const EVM_ContractSpec *spec) {
   printf("[%s]\n", spec->name);
   printf("description: %s\n", spec->description);
   printf("status: %s\n", evm_status_string(status));
+  printf("expected_status: %s\n", evm_status_string(expected_status));
   printf("pc: %zu\n", vm.pc);
   printf("gas_remaining: %" PRIu64 "\n", vm.gas_remaining);
   printf("stack_depth: %zu\n", stack_depth(&vm.stack));
@@ -55,9 +57,16 @@ static int run_contract(const EVM_ContractSpec *spec) {
   }
   fputc('\n', stdout);
 
+  const bool status_matches_expectation = (status == expected_status);
+  if (!status_matches_expectation) {
+    fprintf(stderr, "[%s] unexpected status (actual=%s, expected=%s)\n",
+            spec->name, evm_status_string(status),
+            evm_status_string(expected_status));
+  }
+
   evm_destroy(&vm);
   free(code);
-  return (status == EVM_OK) ? 0 : 2;
+  return status_matches_expectation ? 0 : 2;
 }
 
 static int run_all_contracts() {

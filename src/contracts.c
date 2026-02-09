@@ -203,6 +203,7 @@ static const EVM_ContractSpec BUILTIN_CONTRACTS[] = {
         .description = "TSTORE key 1 with 0x2a, then TLOAD key 1.",
         .bytecode_hex = "602a60015d60015c",
         .suggested_gas_limit = 230,
+        .expected_status = EVM_ERR_INVALID_OPCODE,
     },
     {
         .name = "mcopy_return4",
@@ -210,6 +211,7 @@ static const EVM_ContractSpec BUILTIN_CONTRACTS[] = {
             "Write 0xaabb, MCOPY to duplicate it, RETURN first 4 bytes.",
         .bytecode_hex = "60aa60005360bb6001536002600060025e60046000f3",
         .suggested_gas_limit = 200,
+        .expected_status = EVM_ERR_INVALID_OPCODE,
     },
     {
         .name = "create2_staticcall_selfdestruct",
@@ -252,6 +254,7 @@ static const EVM_ContractSpec BUILTIN_CONTRACTS[] = {
             "Store in TSTORE and SSTORE at key 1, then sum TLOAD+SLOAD.",
         .bytecode_hex = "602a60015d600760015560015c60015401",
         .suggested_gas_limit = 23'000,
+        .expected_status = EVM_ERR_INVALID_OPCODE,
     },
     {
         .name = "mcopy_overlap_return4",
@@ -260,6 +263,7 @@ static const EVM_ContractSpec BUILTIN_CONTRACTS[] = {
         .bytecode_hex =
             "601160005360226001536033600253604460035360035f60015e60046000f3",
         .suggested_gas_limit = 300,
+        .expected_status = EVM_ERR_INVALID_OPCODE,
     },
     {
         .name = "codecopy_sha3_return",
