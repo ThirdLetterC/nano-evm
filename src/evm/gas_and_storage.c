@@ -118,28 +118,8 @@ EVM_Status maybe_charge_selfdestruct_access_gas(EVM_State *vm,
 
 static bool account_is_non_empty_for_call(const EVM_State *vm,
                                           const uint256_t *address) {
-  // Used for the CALL "new account with value" surcharge.
-  if (address == nullptr) {
-    return false;
-  }
-
-  if (uint256_cmp(address, &vm->address) == 0) {
-    uint64_t nonce = 0U;
-    EVM_RuntimeAccount account;
-    if (runtime_account_read(vm, &vm->address, &account)) {
-      nonce = account.nonce;
-    }
-    return nonce != 0U || !uint256_is_zero(&vm->self_balance) ||
-           vm->code_size != 0U;
-  }
-
-  EVM_RuntimeAccount account;
-  if (!runtime_account_read(vm, address, &account)) {
-    return false;
-  }
-
-  return account.nonce != 0U || !uint256_is_zero(&account.balance) ||
-         account.code_size != 0U;
+  // CALL value transfer charges "new account" gas when recipient is DEAD.
+  return !account_is_dead(vm, address);
 }
 
 EVM_Status charge_call_extra_gas(EVM_State *vm, bool has_value_transfer,

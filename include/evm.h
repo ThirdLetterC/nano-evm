@@ -53,7 +53,7 @@ typedef struct {
   const uint8_t *code;
   size_t code_size;
   uint256_t code_hash;
-  uint64_t nonce;
+  uint256_t nonce;
 } EVM_ExternalAccount;
 
 typedef struct {
@@ -67,7 +67,7 @@ typedef struct {
   const uint8_t *code;
   size_t code_size;
   uint256_t code_hash;
-  uint64_t nonce;
+  uint256_t nonce;
   EVM_StorageEntry *storage;
   size_t storage_count;
   size_t storage_capacity;

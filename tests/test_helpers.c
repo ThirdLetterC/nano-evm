@@ -73,23 +73,21 @@ void assert_return_u64(const EVM_State *vm, uint64_t expected) {
   assert(uint256_cmp(&actual, &expected_word) == 0);
 }
 
-static size_t encode_rlp_nonce(uint64_t nonce, uint8_t out[9]) {
-  if (nonce == 0U) {
+static size_t encode_rlp_nonce(const uint256_t *nonce, uint8_t out[33]) {
+  if (nonce == nullptr || uint256_is_zero(nonce)) {
     out[0] = 0x80U;
     return 1U;
   }
 
-  uint8_t be[8];
-  for (size_t i = 0; i < 8U; ++i) {
-    be[i] = (uint8_t)(nonce >> ((7U - i) * 8U));
-  }
+  uint8_t be[32];
+  uint256_to_be_bytes(nonce, be);
 
   size_t first_nonzero = 0;
-  while (first_nonzero < 7U && be[first_nonzero] == 0U) {
+  while (first_nonzero < 31U && be[first_nonzero] == 0U) {
     first_nonzero += 1U;
   }
 
-  size_t payload_size = 8U - first_nonzero;
+  size_t payload_size = 32U - first_nonzero;
   if (payload_size == 1U && be[first_nonzero] <= 0x7fU) {
     out[0] = be[first_nonzero];
     return 1U;
@@ -100,11 +98,12 @@ static size_t encode_rlp_nonce(uint64_t nonce, uint8_t out[9]) {
   return payload_size + 1U;
 }
 
-uint256_t derive_create_address_expected(uint64_t sender, uint64_t nonce) {
-  uint8_t encoded_nonce[9];
+uint256_t derive_create_address_expected(uint64_t sender,
+                                         const uint256_t *nonce) {
+  uint8_t encoded_nonce[33];
   size_t nonce_size = encode_rlp_nonce(nonce, encoded_nonce);
 
-  uint8_t payload[1 + 1 + 20 + 9];
+  uint8_t payload[1 + 1 + 20 + 33];
   payload[0] = (uint8_t)(0xc0U + 1U + 20U + nonce_size);
   payload[1] = 0x94U;
 

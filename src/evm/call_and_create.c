@@ -909,23 +909,21 @@ static uint256_t hash_to_address(const union ethash_hash256 *hash) {
   return address;
 }
 
-static size_t rlp_encode_nonce(uint64_t nonce, uint8_t out[9]) {
-  if (nonce == 0U) {
+static size_t rlp_encode_nonce(const uint256_t *nonce, uint8_t out[33]) {
+  if (nonce == nullptr || uint256_is_zero(nonce)) {
     out[0] = 0x80U;
     return 1U;
   }
 
-  uint8_t be[8];
-  for (size_t i = 0; i < 8U; ++i) {
-    be[i] = (uint8_t)(nonce >> ((7U - i) * 8U));
-  }
+  uint8_t be[32];
+  uint256_to_be_bytes(nonce, be);
 
   size_t first_nonzero = 0;
-  while (first_nonzero < 7U && be[first_nonzero] == 0U) {
+  while (first_nonzero < 31U && be[first_nonzero] == 0U) {
     first_nonzero += 1U;
   }
 
-  size_t payload_size = 8U - first_nonzero;
+  size_t payload_size = 32U - first_nonzero;
   if (payload_size == 1U && be[first_nonzero] <= 0x7fU) {
     out[0] = be[first_nonzero];
     return 1U;
@@ -937,12 +935,12 @@ static size_t rlp_encode_nonce(uint64_t nonce, uint8_t out[9]) {
 }
 
 static uint256_t derive_create_address(const EVM_State *vm,
-                                       uint64_t create_nonce) {
-  uint8_t encoded_nonce[9];
+                                       const uint256_t *create_nonce) {
+  uint8_t encoded_nonce[33];
   size_t nonce_size = rlp_encode_nonce(create_nonce, encoded_nonce);
 
   // CREATE address = keccak256(rlp([sender, nonce]))[12:].
-  uint8_t payload[1 + 1 + 20 + 9];
+  uint8_t payload[1 + 1 + 20 + 33];
   payload[0] = (uint8_t)(0xc0U + 1U + 20U + nonce_size);
   payload[1] = 0x94U;
   uint256_to_address20(&vm->address, payload + 2U);
@@ -1165,9 +1163,10 @@ EVM_Status execute_message_call(EVM_State *vm, uint8_t opcode,
 }
 
 EVM_Status execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
-                          uint64_t create_nonce, const uint8_t *init_code,
-                          size_t init_code_size, const uint256_t *endowment,
-                          const uint256_t *salt, uint256_t *out_address) {
+                          const uint256_t *create_nonce,
+                          const uint8_t *init_code, size_t init_code_size,
+                          const uint256_t *endowment, const uint256_t *salt,
+                          uint256_t *out_address) {
   // Same commit/rollback model as CALL, but return value is created address.
   *out_address = uint256_zero();
   int64_t parent_refund_counter = vm->refund_counter;
@@ -1210,8 +1209,8 @@ EVM_Status execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
   EVM_RuntimeAccount existing_account;
   bool account_exists =
       runtime_account_read(vm, &created_address, &existing_account);
-  if (account_exists &&
-      (existing_account.nonce != 0U || existing_account.code_size > 0U)) {
+  if (account_exists && (!uint256_is_zero(&existing_account.nonce) ||
+                         !runtime_account_code_is_empty(&existing_account))) {
     return set_return_data_bytes(vm, nullptr, 0U);
   }
 

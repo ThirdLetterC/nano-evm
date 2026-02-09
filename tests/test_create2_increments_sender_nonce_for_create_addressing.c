@@ -18,9 +18,12 @@ void test_create2_increments_sender_nonce_for_create_addressing() {
   assert(!uint256_is_zero(&create_address));
   assert(!uint256_is_zero(&create2_address));
 
-  uint256_t expected_create_address = derive_create_address_expected(0x99, 1U);
+  uint256_t expected_nonce = uint256_from_u64(1U);
+  uint256_t expected_create_address =
+      derive_create_address_expected(0x99, &expected_nonce);
+  uint256_t zero_nonce = uint256_zero();
   uint256_t unexpected_create_address =
-      derive_create_address_expected(0x99, 0U);
+      derive_create_address_expected(0x99, &zero_nonce);
   assert(uint256_cmp(&create_address, &expected_create_address) == 0);
   assert(uint256_cmp(&create_address, &unexpected_create_address) != 0);
 

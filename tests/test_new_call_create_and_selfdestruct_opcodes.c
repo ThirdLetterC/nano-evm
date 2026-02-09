@@ -106,14 +106,16 @@ void test_new_call_create_and_selfdestruct_opcodes() {
 
   init_vm_from_hex("5f5f5ff0", 40'000, &vm, &code);
   vm.address = uint256_from_u64(0x77);
-  uint256_t collision_address = derive_create_address_expected(0x77, 0U);
+  uint256_t zero_nonce = uint256_zero();
+  uint256_t collision_address =
+      derive_create_address_expected(0x77, &zero_nonce);
   EVM_ExternalAccount nonce_collision = {
       .address = collision_address,
       .balance = uint256_zero(),
       .code = nullptr,
       .code_size = 0,
       .code_hash = uint256_zero(),
-      .nonce = 1U,
+      .nonce = uint256_from_u64(1U),
   };
   vm.external_accounts = &nonce_collision;
   vm.external_accounts_count = 1;
@@ -139,7 +141,7 @@ void test_new_call_create_and_selfdestruct_opcodes() {
       .code = nullptr,
       .code_size = 0,
       .code_hash = uint256_zero(),
-      .nonce = 0U,
+      .nonce = uint256_zero(),
   };
   vm.external_accounts = &balance_only_account;
   vm.external_accounts_count = 1;
@@ -150,14 +152,61 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   assert(uint256_cmp(&create_result, &collision_address) == 0);
   cleanup(&vm, code);
 
+  init_vm_from_hex("5f5f5ff0", 40'000, &vm, &code);
+  vm.address = uint256_from_u64(0x77);
+  EVM_ExternalAccount code_hash_collision = {
+      .address = collision_address,
+      .balance = uint256_zero(),
+      .code = nullptr,
+      .code_size = 0,
+      .code_hash = uint256_from_u64(1U),
+      .nonce = uint256_zero(),
+  };
+  vm.external_accounts = &code_hash_collision;
+  vm.external_accounts_count = 1;
+  status = evm_execute(&vm);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 0);
+  cleanup(&vm, code);
+
+  init_vm_from_hex("5f5f5ff0", 40'000, &vm, &code);
+  vm.address = uint256_from_u64(0x77);
+  uint256_t high_nonce = uint256_zero();
+  high_nonce.limbs[1] = 1U;
+  EVM_ExternalAccount sender_with_high_nonce = {
+      .address = vm.address,
+      .balance = uint256_zero(),
+      .code = nullptr,
+      .code_size = 0,
+      .code_hash = uint256_zero(),
+      .nonce = high_nonce,
+  };
+  vm.external_accounts = &sender_with_high_nonce;
+  vm.external_accounts_count = 1;
+  status = evm_execute(&vm);
+  assert(status == EVM_OK);
+  uint256_t high_nonce_create_address = uint256_zero();
+  assert(stack_peek(&vm.stack, &high_nonce_create_address) == STACK_OK);
+  uint256_t expected_high_nonce_address =
+      derive_create_address_expected(0x77, &high_nonce);
+  uint256_t truncated_nonce = uint256_from_u64(high_nonce.limbs[0]);
+  uint256_t unexpected_truncated_address =
+      derive_create_address_expected(0x77, &truncated_nonce);
+  assert(uint256_cmp(&high_nonce_create_address,
+                     &expected_high_nonce_address) == 0);
+  assert(uint256_cmp(&high_nonce_create_address,
+                     &unexpected_truncated_address) != 0);
+  cleanup(&vm, code);
+
   init_vm_from_hex("61c0015f5ff000", 200'000, &vm, &code);
   status = evm_execute(&vm);
   assert(status == EVM_OK);
   assert_top_u64(&vm, 0);
   bool caller_nonce_incremented = false;
+  uint256_t one_nonce = uint256_from_u64(1U);
   for (size_t i = 0; i < vm.runtime_accounts_count; ++i) {
     if (uint256_cmp(&vm.runtime_accounts[i].address, &vm.address) == 0 &&
-        vm.runtime_accounts[i].nonce == 1U) {
+        uint256_cmp(&vm.runtime_accounts[i].nonce, &one_nonce) == 0) {
       caller_nonce_incremented = true;
     }
   }
@@ -212,6 +261,24 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   status = evm_execute(&vm);
   assert(status == EVM_OK);
   assert(vm.gas_remaining == 5'062);
+  cleanup(&vm, code);
+
+  EVM_ExternalAccount code_hash_only_account = {
+      .address = uint256_from_u64(0x11),
+      .balance = uint256_zero(),
+      .code = nullptr,
+      .code_size = 0,
+      .code_hash = uint256_from_u64(1U),
+      .nonce = uint256_zero(),
+  };
+  init_vm_from_hex("5f5f5f5f600160115ff100", 20'000, &vm, &code);
+  vm.address = uint256_from_u64(1U);
+  vm.self_balance = uint256_from_u64(1U);
+  vm.external_accounts = &code_hash_only_account;
+  vm.external_accounts_count = 1;
+  status = evm_execute(&vm);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 1U);
   cleanup(&vm, code);
 
   status = execute_hex("602a60015d60015c", 300, &vm, &code);
@@ -315,6 +382,35 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   }
   assert(found_beneficiary);
   assert(found_self);
+  cleanup(&vm, code);
+
+  EVM_ExternalAccount code_hash_beneficiary = {
+      .address = uint256_from_u64(0x22),
+      .balance = uint256_zero(),
+      .code = nullptr,
+      .code_size = 0,
+      .code_hash = uint256_from_u64(1U),
+      .nonce = uint256_zero(),
+  };
+  init_vm_from_hex("6022ff", 12'000, &vm, &code);
+  vm.address = uint256_from_u64(0x99);
+  vm.self_balance = uint256_from_u64(1U);
+  vm.external_accounts = &code_hash_beneficiary;
+  vm.external_accounts_count = 1;
+  status = evm_execute(&vm);
+  assert(status == EVM_OK);
+  assert(uint256_is_zero(&vm.self_balance));
+  bool found_code_hash_beneficiary = false;
+  uint256_t expected_one_wei = uint256_from_u64(1U);
+  for (size_t i = 0; i < vm.runtime_accounts_count; ++i) {
+    if (uint256_cmp(&vm.runtime_accounts[i].address,
+                    &code_hash_beneficiary.address) == 0) {
+      assert(uint256_cmp(&vm.runtime_accounts[i].balance, &expected_one_wei) ==
+             0);
+      found_code_hash_beneficiary = true;
+    }
+  }
+  assert(found_code_hash_beneficiary);
   cleanup(&vm, code);
 
   init_vm_from_hex("6099ff", 10'000, &vm, &code);

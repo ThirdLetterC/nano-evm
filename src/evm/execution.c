@@ -24,10 +24,7 @@ static EVM_Status pop_size_t(EVM_State *vm, size_t *out) {
   if (status != EVM_OK) {
     return status;
   }
-  if (!uint256_fits_size_t(&value)) {
-    return EVM_ERR_RUNTIME;
-  }
-  *out = uint256_to_size_t(&value);
+  *out = uint256_fits_size_t(&value) ? uint256_to_size_t(&value) : SIZE_MAX;
   return EVM_OK;
 }
 
@@ -991,11 +988,10 @@ EVM_Status evm_execute(EVM_State *vm) {
         return status;
       }
       uint256_t hash = uint256_zero();
-      if (uint256_fits_u64(&vm->block_number) &&
-          uint256_fits_u64(&block_number)) {
-        uint64_t current = vm->block_number.limbs[0];
-        uint64_t requested = block_number.limbs[0];
-        if (requested < current && (current - requested) <= 256U) {
+      if (uint256_cmp(&block_number, &vm->block_number) < 0) {
+        uint256_t distance = uint256_sub(&vm->block_number, &block_number);
+        uint256_t max_distance = uint256_from_u64(256U);
+        if (uint256_cmp(&distance, &max_distance) <= 0) {
           hash = block_hash_lookup(vm, &block_number);
         }
       }
@@ -1412,7 +1408,7 @@ EVM_Status evm_execute(EVM_State *vm) {
         }
       }
 
-      uint64_t sender_nonce = 0;
+      uint256_t sender_nonce = uint256_zero();
       status = account_nonce_get(vm, &vm->address, &sender_nonce);
       if (status != EVM_OK) {
         free(init_code);
@@ -1428,7 +1424,7 @@ EVM_Status evm_execute(EVM_State *vm) {
 
       uint256_t created_address = uint256_zero();
       status =
-          execute_create(vm, opcode, forwarded_gas, sender_nonce, init_code,
+          execute_create(vm, opcode, forwarded_gas, &sender_nonce, init_code,
                          data_size, &endowment, &salt, &created_address);
       free(init_code);
       if (status != EVM_OK) {
@@ -1713,27 +1709,8 @@ EVM_Status evm_execute(EVM_State *vm) {
         return status;
       }
 
-      bool beneficiary_is_non_empty = false;
-      if (uint256_cmp(&beneficiary, &vm->address) == 0) {
-        uint64_t nonce = 0U;
-        EVM_RuntimeAccount self_account_snapshot;
-        if (runtime_account_read(vm, &vm->address, &self_account_snapshot)) {
-          nonce = self_account_snapshot.nonce;
-        }
-        beneficiary_is_non_empty = nonce != 0U ||
-                                   !uint256_is_zero(&vm->self_balance) ||
-                                   vm->code_size != 0U;
-      } else {
-        EVM_RuntimeAccount beneficiary_snapshot;
-        if (runtime_account_read(vm, &beneficiary, &beneficiary_snapshot)) {
-          beneficiary_is_non_empty =
-              beneficiary_snapshot.nonce != 0U ||
-              !uint256_is_zero(&beneficiary_snapshot.balance) ||
-              beneficiary_snapshot.code_size != 0U;
-        }
-      }
-
-      if (!beneficiary_is_non_empty && !uint256_is_zero(&vm->self_balance)) {
+      bool beneficiary_is_dead = account_is_dead(vm, &beneficiary);
+      if (beneficiary_is_dead && !uint256_is_zero(&vm->self_balance)) {
         status = charge_gas(vm, GAS_CALL_NEW_ACCOUNT);
         if (status != EVM_OK) {
           return status;

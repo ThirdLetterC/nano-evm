@@ -45,8 +45,10 @@ EVM_Status account_deploy_contract(EVM_State *vm, const uint256_t *address,
                                    size_t runtime_code_size,
                                    const uint256_t *balance);
 EVM_Status account_nonce_get(EVM_State *vm, const uint256_t *address,
-                             uint64_t *out_nonce);
+                             uint256_t *out_nonce);
 EVM_Status account_nonce_increment(EVM_State *vm, const uint256_t *address);
+bool runtime_account_code_is_empty(const EVM_RuntimeAccount *account);
+bool account_is_dead(const EVM_State *vm, const uint256_t *address);
 EVM_Status account_mark_selfdestruct(EVM_State *vm, const uint256_t *address);
 EVM_Status account_mark_destroyed(EVM_State *vm, const uint256_t *address);
 EVM_Status runtime_accounts_apply_selfdestructs(EVM_State *vm);

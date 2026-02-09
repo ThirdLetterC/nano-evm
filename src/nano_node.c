@@ -30,7 +30,8 @@ typedef struct {
 
 static constexpr uint8_t NODE_MAGIC[8] = {'N', 'N', 'O', 'D',
                                           'E', '0', '0', '1'};
-static constexpr uint32_t NODE_STATE_VERSION = 2U;
+static constexpr uint32_t NODE_STATE_VERSION = 3U;
+static constexpr uint32_t NODE_STATE_VERSION_U64_RUNTIME_NONCE = 2U;
 static constexpr uint32_t NODE_STATE_VERSION_STORAGE_ONLY = 1U;
 static constexpr uint64_t DEFAULT_GAS_LIMIT = 3'000'000U;
 static constexpr uint64_t DEFAULT_CALLER = 1U;
@@ -275,7 +276,7 @@ static bool write_runtime_account(FILE *file,
   if (!write_uint256(file, &account->address) ||
       !write_uint256(file, &account->balance) ||
       !write_uint256(file, &account->code_hash) ||
-      !write_u64_le(file, account->nonce) || !write_u8(file, flags) ||
+      !write_uint256(file, &account->nonce) || !write_u8(file, flags) ||
       !write_u64_le(file, (uint64_t)account->code_size) ||
       !write_u64_le(file, (uint64_t)account->storage_count) ||
       !write_u64_le(file, (uint64_t)account->transient_storage_count)) {
@@ -291,17 +292,28 @@ static bool write_runtime_account(FILE *file,
   return true;
 }
 
-static bool read_runtime_account(FILE *file, EVM_RuntimeAccount *account) {
+static bool read_runtime_account(FILE *file, EVM_RuntimeAccount *account,
+                                 bool nonce_encoded_as_u64) {
   uint64_t code_size_u64 = 0;
   uint64_t storage_count_u64 = 0;
   uint64_t transient_count_u64 = 0;
+  uint64_t nonce_u64 = 0;
   uint8_t flags = 0U;
 
   if (!read_uint256(file, &account->address) ||
       !read_uint256(file, &account->balance) ||
-      !read_uint256(file, &account->code_hash) ||
-      !read_u64_le(file, &account->nonce) || !read_u8(file, &flags) ||
-      !read_u64_le(file, &code_size_u64) ||
+      !read_uint256(file, &account->code_hash)) {
+    return false;
+  }
+  if (nonce_encoded_as_u64) {
+    if (!read_u64_le(file, &nonce_u64)) {
+      return false;
+    }
+    account->nonce = uint256_from_u64(nonce_u64);
+  } else if (!read_uint256(file, &account->nonce)) {
+    return false;
+  }
+  if (!read_u8(file, &flags) || !read_u64_le(file, &code_size_u64) ||
       !read_u64_le(file, &storage_count_u64) ||
       !read_u64_le(file, &transient_count_u64)) {
     return false;
@@ -397,9 +409,9 @@ static bool write_runtime_accounts(FILE *file,
 }
 
 static bool read_runtime_accounts(FILE *file, EVM_RuntimeAccount *accounts,
-                                  size_t count) {
+                                  size_t count, bool nonce_encoded_as_u64) {
   for (size_t i = 0; i < count; ++i) {
-    if (!read_runtime_account(file, &accounts[i])) {
+    if (!read_runtime_account(file, &accounts[i], nonce_encoded_as_u64)) {
       return false;
     }
   }
@@ -537,6 +549,7 @@ static bool node_state_load(const char *path, NodeState *out_state) {
     return false;
   }
   if (version != NODE_STATE_VERSION &&
+      version != NODE_STATE_VERSION_U64_RUNTIME_NONCE &&
       version != NODE_STATE_VERSION_STORAGE_ONLY) {
     fprintf(stderr, "Unsupported state version (%" PRIu32 "): %s\n", version,
             path);
@@ -551,7 +564,8 @@ static bool node_state_load(const char *path, NodeState *out_state) {
   }
 
   ok = ok && read_uint256(file, &out_state->contract_address);
-  if (version == NODE_STATE_VERSION) {
+  if (version == NODE_STATE_VERSION ||
+      version == NODE_STATE_VERSION_U64_RUNTIME_NONCE) {
     ok = ok && read_uint256(file, &out_state->self_balance);
     ok = ok && read_u64_le(file, &code_size_u64);
     ok = ok && read_u64_le(file, &storage_count_u64);
@@ -658,7 +672,8 @@ static bool node_state_load(const char *path, NodeState *out_state) {
     return false;
   }
   if (!read_runtime_accounts(file, out_state->runtime_accounts,
-                             out_state->runtime_accounts_count)) {
+                             out_state->runtime_accounts_count,
+                             version == NODE_STATE_VERSION_U64_RUNTIME_NONCE)) {
     fprintf(stderr, "Failed to read runtime accounts: %s\n", path);
     fclose(file);
     node_state_destroy(out_state);

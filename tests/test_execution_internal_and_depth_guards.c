@@ -1,10 +1,10 @@
 #include "test_helpers.h"
 
 static bool runtime_account_nonce_is(const EVM_State *vm, const uint256_t *addr,
-                                     uint64_t expected_nonce) {
+                                     const uint256_t *expected_nonce) {
   for (size_t i = 0; i < vm->runtime_accounts_count; ++i) {
     if (uint256_cmp(&vm->runtime_accounts[i].address, addr) == 0) {
-      return vm->runtime_accounts[i].nonce == expected_nonce;
+      return uint256_cmp(&vm->runtime_accounts[i].nonce, expected_nonce) == 0;
     }
   }
   return false;
@@ -40,6 +40,14 @@ void test_execution_internal_and_depth_guards() {
   status = evm_execute(&vm);
   assert(status == EVM_OK);
   assert_top_u64(&vm, 0U);
-  assert(!runtime_account_nonce_is(&vm, &vm.address, 1U));
+  uint256_t one_nonce = uint256_from_u64(1U);
+  assert(!runtime_account_nonce_is(&vm, &vm.address, &one_nonce));
+  cleanup(&vm, code);
+
+  status = execute_hex("5f5f7ffffffffffffffffffffffffffffffffffffffffffffffffff"
+                       "fffffffffffff3700",
+                       300U, &vm, &code);
+  assert(status == EVM_OK);
+  assert(vm.memory_size == 0U);
   cleanup(&vm, code);
 }

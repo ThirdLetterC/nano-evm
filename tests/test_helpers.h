@@ -28,7 +28,8 @@ EVM_Status execute_toy_source(const char *source, uint64_t gas_limit,
 void assert_top_u64(const EVM_State *vm, uint64_t expected);
 void assert_top_bytes32(const EVM_State *vm, const uint8_t expected[32]);
 void assert_return_u64(const EVM_State *vm, uint64_t expected);
-uint256_t derive_create_address_expected(uint64_t sender, uint64_t nonce);
+uint256_t derive_create_address_expected(uint64_t sender,
+                                         const uint256_t *nonce);
 void assert_gas_used_ok(const char *hex, uint64_t gas_limit,
                         uint64_t expected_used);
 

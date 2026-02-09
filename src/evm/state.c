@@ -578,7 +578,7 @@ EVM_Status runtime_account_ensure(EVM_State *vm, const uint256_t *address,
   account.code = nullptr;
   account.code_size = 0;
   account.code_hash = uint256_zero();
-  account.nonce = 0;
+  account.nonce = uint256_zero();
   account.storage = nullptr;
   account.storage_count = 0;
   account.storage_capacity = 0;
@@ -659,12 +659,9 @@ static uint256_t runtime_code_hash(const EVM_RuntimeAccount *account) {
   return out;
 }
 
-static bool runtime_account_is_empty(const EVM_RuntimeAccount *account) {
+bool runtime_account_code_is_empty(const EVM_RuntimeAccount *account) {
   if (account == nullptr) {
     return true;
-  }
-  if (account->nonce != 0U || !uint256_is_zero(&account->balance)) {
-    return false;
   }
 
   uint256_t code_hash = runtime_code_hash(account);
@@ -672,6 +669,44 @@ static bool runtime_account_is_empty(const EVM_RuntimeAccount *account) {
   uint256_t empty_hash_word = uint256_zero();
   uint256_from_be_bytes(&empty_hash_word, empty_code_hash.bytes);
   return uint256_cmp(&code_hash, &empty_hash_word) == 0;
+}
+
+static bool runtime_account_is_empty(const EVM_RuntimeAccount *account) {
+  if (account == nullptr) {
+    return true;
+  }
+  if (!uint256_is_zero(&account->nonce) ||
+      !uint256_is_zero(&account->balance)) {
+    return false;
+  }
+  return runtime_account_code_is_empty(account);
+}
+
+bool account_is_dead(const EVM_State *vm, const uint256_t *address) {
+  if (address == nullptr) {
+    return false;
+  }
+
+  if (uint256_cmp(address, &vm->address) == 0) {
+    EVM_RuntimeAccount current;
+    memset(&current, 0, sizeof(current));
+    current.balance = vm->self_balance;
+    current.code = vm->code;
+    current.code_size = vm->code_size;
+
+    EVM_RuntimeAccount snapshot;
+    if (runtime_account_read(vm, &vm->address, &snapshot)) {
+      current.nonce = snapshot.nonce;
+      current.code_hash = snapshot.code_hash;
+    }
+    return runtime_account_is_empty(&current);
+  }
+
+  EVM_RuntimeAccount account;
+  if (!runtime_account_read(vm, address, &account)) {
+    return true;
+  }
+  return runtime_account_is_empty(&account);
 }
 
 uint256_t account_balance_get(const EVM_State *vm, const uint256_t *address) {
@@ -825,14 +860,14 @@ EVM_Status account_deploy_contract(EVM_State *vm, const uint256_t *address,
     return status;
   }
   account->balance = *balance;
-  account->nonce = 1U;
+  account->nonce = uint256_from_u64(1U);
   account->destroyed = false;
   account->created_in_transaction = true;
   return EVM_OK;
 }
 
 EVM_Status account_nonce_get(EVM_State *vm, const uint256_t *address,
-                             uint64_t *out_nonce) {
+                             uint256_t *out_nonce) {
   if (out_nonce == nullptr) {
     return EVM_ERR_INTERNAL;
   }
@@ -854,11 +889,13 @@ EVM_Status account_nonce_increment(EVM_State *vm, const uint256_t *address) {
     return status;
   }
 
-  if (account->nonce == UINT64_MAX) {
+  uint256_t one = uint256_from_u64(1U);
+  uint256_t next_nonce = uint256_add(&account->nonce, &one);
+  if (uint256_cmp(&next_nonce, &account->nonce) <= 0) {
     return EVM_ERR_RUNTIME;
   }
 
-  account->nonce += 1U;
+  account->nonce = next_nonce;
   account->destroyed = false;
   return EVM_OK;
 }

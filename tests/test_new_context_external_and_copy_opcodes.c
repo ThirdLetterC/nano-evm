@@ -121,6 +121,26 @@ void test_new_context_external_and_copy_opcodes() {
   assert_top_u64(&vm, 0);
   cleanup(&vm, code);
 
+  uint256_t high_requested = uint256_zero();
+  high_requested.limbs[1] = 1U;
+  high_requested.limbs[0] = 999U;
+  EVM_BlockHashEntry high_block_hash = {
+      .number = high_requested,
+      .hash = uint256_from_u64(0xdef),
+  };
+  init_vm_from_hex(
+      "7f00000000000000000000000000000000000000000000000100000000000003e740",
+      500, &vm, &code);
+  vm.block_number = uint256_zero();
+  vm.block_number.limbs[1] = 1U;
+  vm.block_number.limbs[0] = 1'000U;
+  vm.block_hashes = &high_block_hash;
+  vm.block_hashes_count = 1;
+  status = evm_execute(&vm);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 0xdef);
+  cleanup(&vm, code);
+
   status = execute_hex("5f49", 500, &vm, &code);
   assert(status == EVM_ERR_INVALID_OPCODE);
   cleanup(&vm, code);
