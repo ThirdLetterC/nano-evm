@@ -1287,8 +1287,13 @@ EVM_Status execute_create(EVM_State *vm, uint8_t opcode, uint64_t gas_forwarded,
   warm_accounts_commit_from_child(vm, &child);
   status = return_child_gas(vm, child.gas_remaining);
   if (status == EVM_OK) {
-    status =
-        set_return_data_bytes(vm, child.return_data, child.return_data_size);
+    if (child_status == EVM_OK) {
+      // Yellow Paper (Shanghai): successful CREATE/CREATE2 clear returndata.
+      status = set_return_data_bytes(vm, nullptr, 0U);
+    } else {
+      status =
+          set_return_data_bytes(vm, child.return_data, child.return_data_size);
+    }
   }
 
   if (child_status == EVM_OK) {

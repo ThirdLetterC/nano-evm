@@ -418,7 +418,8 @@ zig build examples -- adder storage_roundtrip
 - `RETURNDATACOPY`: `3 + 3 * words`
 - `BLOCKHASH`: `20`
 - `COINBASE`, `TIMESTAMP`, `NUMBER`, `PREVRANDAO`, `GASLIMIT`, `CHAINID`: `2`
-- `SELFBALANCE`, `BASEFEE`: `2`
+- `SELFBALANCE`: `5`
+- `BASEFEE`: `2`
 - `MLOAD`, `MSTORE`, `MSTORE8`: `3`
 - `JUMP`: `8`
 - `JUMPI`: `10`
@@ -441,6 +442,7 @@ child returndata via `RETURNDATA*`. `CALL` value transfers update balances on su
 `STATICCALL` enforces no state writes, and `SELFDESTRUCT` transfers balance to its beneficiary.
 Forwarded call gas is capped by the EIP-150 63/64 rule, and value-bearing `CALL`/`CALLCODE`
 receive the 2300 gas stipend.
+For `CREATE`/`CREATE2`, returndata is cleared on success and preserved on failure.
 
 ## Project Layout
 

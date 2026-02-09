@@ -46,6 +46,7 @@ void test_per_opcode_gas() {
   assert_gas_used_ok("5f5f5f3e", 20, 9);
   assert_gas_used_ok("5f5f5f5f5f5f5ff1", 500, 114);
   assert_gas_used_ok("5f5f5f5f5f60115ff1", 3'000, 2'615);
+  assert_gas_used_ok("47", 10, 5);
   assert_gas_used_ok("59", 10, 2);
   assert_gas_used_ok("600054", 3'000, 2'103);
   assert_gas_used_ok("6001600055", 30'000, 22'106);

@@ -125,9 +125,10 @@ uint64_t opcode_base_gas_cost(uint8_t opcode) {
   case OPCODE_PREVRANDAO:
   case OPCODE_GASLIMIT:
   case OPCODE_CHAINID:
-  case OPCODE_SELFBALANCE:
   case OPCODE_BASEFEE:
     return GAS_BASE;
+  case OPCODE_SELFBALANCE:
+    return GAS_LOW;
   case OPCODE_MLOAD:
   case OPCODE_MSTORE:
   case OPCODE_MSTORE8:

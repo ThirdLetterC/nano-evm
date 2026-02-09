@@ -70,6 +70,20 @@ void test_new_call_create_and_selfdestruct_opcodes() {
   assert(uint256_cmp(&create_address, &create2_address) != 0);
   cleanup(&vm, code);
 
+  // CREATE success must clear returndata, even when init code returns bytes.
+  status = execute_hex("600a600e5f39600a5f5ff0503d0060aa60005360016000f3",
+                       40'000, &vm, &code);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 0);
+  cleanup(&vm, code);
+
+  // CREATE failure from REVERT must preserve revert bytes in returndata.
+  status = execute_hex("600a600e5f39600a5f5ff0503d0060aa60005360016000fd",
+                       40'000, &vm, &code);
+  assert(status == EVM_OK);
+  assert_top_u64(&vm, 1);
+  cleanup(&vm, code);
+
   init_vm_from_hex("5f5f5ff0", 40'000, &vm, &code);
   vm.address = uint256_from_u64(0x77);
   uint256_t collision_address = derive_create_address_expected(0x77, 0U);
