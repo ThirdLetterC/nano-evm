@@ -1,0 +1,45 @@
+contract LinearVesting {
+    function main() {
+        // Storage layout:
+        // slot 0: vesting start timestamp
+        // slot 1: vesting duration
+        // slot 2: total allocation
+        // slot 3: amount already claimed
+        //
+        // Calldata:
+        // word0 low byte: command
+        // command == 1: claim currently claimable amount
+        // otherwise: view currently claimable amount
+        if (sload(0) == 0) {
+            sstore(0, timestamp());
+            sstore(1, 1000);
+            sstore(2, 1_000_000);
+            sstore(3, 0);
+        }
+
+        uint start = sload(0);
+        uint duration = sload(1);
+        uint total = sload(2);
+        uint claimed = sload(3);
+        uint nowTs = timestamp();
+        uint vested = 0;
+
+        if (nowTs >= (start + duration)) {
+            vested = total;
+        } else {
+            vested = (total * (nowTs - start)) / duration;
+        }
+
+        if (vested <= claimed) {
+            return 0;
+        }
+
+        uint claimable = vested - claimed;
+        uint command = calldataload(0) & 0xff;
+        if (command == 1) {
+            sstore(3, claimed + claimable);
+        }
+
+        return claimable;
+    }
+}

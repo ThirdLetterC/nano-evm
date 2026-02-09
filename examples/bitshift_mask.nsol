@@ -1,0 +1,11 @@
+contract BitshiftMask {
+    function main() {
+        // Build a 16-bit value from bytes:
+        // 0x12 << 8 -> 0x1200
+        // 0x1200 | 0x34 -> 0x1234
+        // then shift right by 4 -> 0x0123
+        uint value = 0x12;
+        uint shifted = (value << 8) | 0x34;
+        return shifted >> 4;
+    }
+}

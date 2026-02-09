@@ -1,0 +1,12 @@
+contract CalldataGate {
+    function main() {
+        // Return 0 when no calldata is provided.
+        // Otherwise return the low byte of calldata word0.
+        if (calldatasize() == 0) {
+            return 0;
+        }
+
+        uint word = calldataload(0);
+        return word & 0xff;
+    }
+}

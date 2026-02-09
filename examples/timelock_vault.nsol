@@ -1,0 +1,51 @@
+contract TimelockVault {
+    function main() {
+        // Storage layout:
+        // slot 0: beneficiary
+        // slot 1: unlock timestamp
+        // slot 2: vault balance
+        //
+        // Calldata:
+        // word0 low byte: command
+        // word1: argument
+        //
+        // command == 1: deposit(argument), beneficiary-only
+        // command == 2: setUnlock(argument), beneficiary-only
+        // otherwise: tryWithdraw(), beneficiary-only and only after unlock
+        uint beneficiary = sload(0);
+        if (beneficiary == 0) {
+            sstore(0, caller());
+            beneficiary = caller();
+        }
+
+        uint command = calldataload(0) & 0xff;
+        uint argument = calldataload(32);
+
+        if (command == 1) {
+            if (caller() != beneficiary) {
+                return 0;
+            }
+
+            uint newBalance = sload(2) + argument;
+            sstore(2, newBalance);
+            return newBalance;
+        }
+
+        if (command == 2) {
+            if (caller() != beneficiary) {
+                return 0;
+            }
+
+            sstore(1, argument);
+            return 1;
+        }
+
+        if ((caller() != beneficiary) || (timestamp() < sload(1))) {
+            return 0;
+        }
+
+        uint owed = sload(2);
+        sstore(2, 0);
+        return owed;
+    }
+}

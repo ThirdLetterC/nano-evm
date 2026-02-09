@@ -1,0 +1,8 @@
+contract MemoryReturn {
+    function main() {
+        // Write one word to memory and return 32 bytes from offset 0.
+        // Returned bytes end with 0x11223344 (big-endian word layout).
+        mstore(0, 0x11223344);
+        return_mem(0, 32);
+    }
+}

@@ -1,0 +1,10 @@
+contract TransientCache {
+    function main() {
+        // Transient storage lasts only for the current transaction/call frame.
+        // This example caches two values and returns their sum.
+        tstore(1, 0x2a);
+        tstore(2, 0x10);
+        uint total = tload(1) + tload(2);
+        return total;
+    }
+}

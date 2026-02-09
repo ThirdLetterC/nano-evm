@@ -1,0 +1,26 @@
+contract RateLimiter {
+    function main() {
+        // Storage layout:
+        // slot 0: block number of the active window
+        // slot 1: accepted call count in that window
+        //
+        // Policy: allow at most 5 successful calls per block.
+        // Return 1 when accepted, 0 when throttled.
+        uint currentBlock = number();
+        uint lastBlock = sload(0);
+        uint count = sload(1);
+
+        if (currentBlock != lastBlock) {
+            sstore(0, currentBlock);
+            sstore(1, 0);
+            count = 0;
+        }
+
+        if (count >= 5) {
+            return 0;
+        }
+
+        sstore(1, count + 1);
+        return 1;
+    }
+}

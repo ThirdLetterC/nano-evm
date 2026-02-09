@@ -1,0 +1,12 @@
+contract ArithmeticShowcase {
+    function main() {
+        // Demonstrates arithmetic precedence and modulo.
+        // c = (9 * 4) + (9 / 4) = 36 + 2 = 38
+        // d = 38 % 7 = 3
+        uint a = 9;
+        uint b = 4;
+        uint c = (a * b) + (a / b);
+        uint d = c % 7;
+        return d;
+    }
+}

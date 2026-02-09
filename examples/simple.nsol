@@ -1,0 +1,13 @@
+contract Adder {
+    function main() {
+        // Smallest "local variables + expression" example.
+        // `main` returns one 32-byte word.
+        uint a = 2;
+        uint b = 3;
+        uint c = 3;
+
+        uint partial = a + b;
+        uint total = partial + c;
+        return total;
+    }
+}

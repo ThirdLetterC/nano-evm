@@ -1,0 +1,117 @@
+contract ERC20Token {
+    function main() {
+        // Storage layout:
+        // slot 0: initialization flag
+        // slot 1: total supply
+        // slot (10_000 + account): balance(account)
+        // slot (1_000_000 + owner * 1_000_003 + spender * 9_999_991): allowance(owner, spender)
+        //
+        // Calldata command layout:
+        // word0 low byte: command
+        // word1: arg1
+        // word2: arg2
+        // word3: arg3
+        //
+        // command == 1: totalSupply() -> return supply
+        // command == 2: balanceOf(account=arg1) -> return balance
+        // command == 3: transfer(to=arg1, amount=arg2) -> return 1/0
+        // command == 4: approve(spender=arg1, amount=arg2) -> return 1/0
+        // command == 5: allowance(owner=arg1, spender=arg2) -> return allowance
+        // command == 6: transferFrom(owner=arg1, to=arg2, amount=arg3) -> return 1/0
+
+        if (sload(0) == 0) {
+            uint genesisSupply = 1_000_000;
+            uint genesisHolder = caller();
+            sstore(1, genesisSupply);
+            sstore(10_000 + genesisHolder, genesisSupply);
+            sstore(0, 1);
+        }
+
+        uint command = calldataload(0) & 0xff;
+        uint arg1 = calldataload(32);
+        uint arg2 = calldataload(64);
+        uint arg3 = calldataload(96);
+
+        uint account = 0;
+        uint amount = 0;
+        uint keyA = 0;
+        uint keyB = 0;
+        uint balanceA = 0;
+        uint balanceB = 0;
+        uint newBalance = 0;
+        uint allowanceKey = 0;
+        uint allowanceAmount = 0;
+
+        if (command == 1) {
+            return sload(1);
+        }
+
+        if (command == 2) {
+            account = arg1;
+            return sload(10_000 + account);
+        }
+
+        if (command == 3) {
+            account = caller();
+            amount = arg2;
+            keyA = 10_000 + account;
+            balanceA = sload(keyA);
+            if (amount > balanceA) {
+                return 0;
+            }
+
+            keyB = 10_000 + arg1;
+            balanceB = sload(keyB);
+            newBalance = balanceB + amount;
+            if (newBalance < balanceB) {
+                return 0;
+            }
+
+            sstore(keyA, balanceA - amount);
+            sstore(keyB, newBalance);
+            return 1;
+        }
+
+        if (command == 4) {
+            account = caller();
+            allowanceKey = 1_000_000 + (account * 1_000_003) + (arg1 * 9_999_991);
+            sstore(allowanceKey, arg2);
+            return 1;
+        }
+
+        if (command == 5) {
+            allowanceKey = 1_000_000 + (arg1 * 1_000_003) + (arg2 * 9_999_991);
+            return sload(allowanceKey);
+        }
+
+        if (command == 6) {
+            account = arg1;
+            amount = arg3;
+            keyA = 10_000 + account;
+            balanceA = sload(keyA);
+            if (amount > balanceA) {
+                return 0;
+            }
+
+            allowanceKey = 1_000_000 + (account * 1_000_003) + (caller() * 9_999_991);
+            allowanceAmount = sload(allowanceKey);
+            if (amount > allowanceAmount) {
+                return 0;
+            }
+
+            keyB = 10_000 + arg2;
+            balanceB = sload(keyB);
+            newBalance = balanceB + amount;
+            if (newBalance < balanceB) {
+                return 0;
+            }
+
+            sstore(keyA, balanceA - amount);
+            sstore(keyB, newBalance);
+            sstore(allowanceKey, allowanceAmount - amount);
+            return 1;
+        }
+
+        return 0;
+    }
+}

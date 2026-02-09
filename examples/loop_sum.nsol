@@ -1,0 +1,15 @@
+contract LoopSum {
+    function main() {
+        // Sum integers [0, 9] with a while loop.
+        // Expected result: 45.
+        uint i = 0;
+        uint acc = 0;
+
+        while (i < 10) {
+            acc = acc + i;
+            i = i + 1;
+        }
+
+        return acc;
+    }
+}

@@ -1,0 +1,61 @@
+contract AccessControlledTreasury {
+    function main() {
+        // Storage layout:
+        // slot 0: owner
+        // slot 1: paused flag (0 = active, 1 = paused)
+        // slot 2: treasury balance
+        //
+        // Calldata:
+        // word0 low byte: command
+        // word1: amount
+        //
+        // command == 1: pause (owner-only)
+        // command == 2: unpause (owner-only)
+        // command == 3: withdraw(amount) (owner-only, only when unpaused)
+        // command == 4: deposit(amount) (owner-only)
+        // otherwise: return current balance (owner-only)
+        uint owner = sload(0);
+        if (owner == 0) {
+            owner = caller();
+            sstore(0, owner);
+        }
+
+        if (caller() != owner) {
+            return 0;
+        }
+
+        uint command = calldataload(0) & 0xff;
+        uint amount = calldataload(32);
+        uint paused = sload(1);
+        uint balance = sload(2);
+
+        if (command == 1) {
+            sstore(1, 1);
+            return 1;
+        }
+
+        if (command == 2) {
+            sstore(1, 0);
+            return 1;
+        }
+
+        if (command == 3) {
+            if (paused != 0) {
+                return 0;
+            }
+            if (amount > balance) {
+                return 0;
+            }
+
+            sstore(2, balance - amount);
+            return 1;
+        }
+
+        if (command == 4) {
+            sstore(2, balance + amount);
+            return 1;
+        }
+
+        return balance;
+    }
+}

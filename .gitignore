@@ -1,0 +1,53 @@
+# Makefile output binaries
+/nano-evm
+/nano-solc
+/test_suite
+/contract_examples
+/nano-evm-debug
+/nano-solc-debug
+/test_suite-debug
+
+# Compiled objects and libraries
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+
+# Coverage and profiling artifacts
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+
+# Common build directories
+/build/
+/out/
+/dist/
+/Debug/
+/Release/
+/zig-out/
+/.zig-cache/
+
+# CMake/Ninja-generated files (if used)
+/CMakeFiles/
+/CMakeCache.txt
+/cmake-build-*/
+/compile_commands.json
+/Testing/
+
+# Editor and OS files
+/.idea/
+/.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+erc20.state
+
+paper.tex

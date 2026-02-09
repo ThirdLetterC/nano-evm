@@ -1,0 +1,18 @@
+contract RevertOnZero {
+    function main() {
+        // Demonstrates conditional revert with custom return-data.
+        //
+        // If calldata is empty:
+        // - write 0xdead into memory word at offset 0
+        // - revert with bytes [30, 31], which are the last two bytes: 0xde 0xad
+        //
+        // Otherwise return calldata size as a normal success value.
+        uint size = calldatasize();
+        if (size == 0) {
+            mstore(0, 0xdead);
+            revert_mem(30, 2);
+        }
+
+        return size;
+    }
+}

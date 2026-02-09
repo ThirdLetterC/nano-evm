@@ -1,0 +1,16 @@
+contract ReplayGuardTransient {
+    function main() {
+        // Calldata:
+        // word0: nonce
+        //
+        // Uses transient storage to reject nonce reuse within the same tx/call context.
+        // Return 1 on first use, 0 on replay.
+        uint nonce = calldataload(0);
+        if (tload(nonce) != 0) {
+            return 0;
+        }
+
+        tstore(nonce, 1);
+        return 1;
+    }
+}

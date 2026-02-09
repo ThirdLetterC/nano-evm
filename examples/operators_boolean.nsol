@@ -1,0 +1,15 @@
+contract OperatorsBoolean {
+    function main() {
+        // Boolean/logical expression demo.
+        // cond is true because 5 < 9 and 5 != 0.
+        uint a = 5;
+        uint b = 9;
+        uint cond = (a < b) && !(a == 0);
+
+        if (cond || (b <= a)) {
+            return 1;
+        }
+
+        return 0;
+    }
+}

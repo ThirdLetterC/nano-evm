@@ -1,0 +1,33 @@
+contract AmmQuote {
+    function main() {
+        // Storage layout:
+        // slot 0: reserveIn
+        // slot 1: reserveOut
+        //
+        // Calldata:
+        // word0: amountIn
+        //
+        // Quote formula (0.3% fee):
+        // amountInWithFee = amountIn * 997
+        // amountOut = (amountInWithFee * reserveOut) / (reserveIn * 1000 + amountInWithFee)
+        if (sload(0) == 0) {
+            sstore(0, 1_000_000);
+        }
+        if (sload(1) == 0) {
+            sstore(1, 500_000);
+        }
+
+        uint reserveIn = sload(0);
+        uint reserveOut = sload(1);
+        uint amountIn = calldataload(0);
+
+        if (amountIn == 0) {
+            return 0;
+        }
+
+        uint amountInWithFee = amountIn * 997;
+        uint numerator = amountInWithFee * reserveOut;
+        uint denominator = (reserveIn * 1000) + amountInWithFee;
+        return numerator / denominator;
+    }
+}

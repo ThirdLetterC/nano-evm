@@ -1,0 +1,45 @@
+#ifndef TEST_CASES_H
+#define TEST_CASES_H
+
+void test_arithmetic_and_stack();
+void test_sub_underflow_wraps();
+void test_div_by_zero_returns_zero();
+void test_core_arithmetic_logic_opcodes();
+void test_memory_ops();
+void test_sha3_opcode();
+void test_storage_ops();
+void test_return_and_revert();
+void test_sstore_refund_semantics();
+void test_log_ops();
+void test_contract_io_opcodes();
+void test_high_value_low_complexity_opcodes();
+void test_new_signed_and_transient_opcodes();
+void test_new_context_external_and_copy_opcodes();
+void test_new_call_create_and_selfdestruct_opcodes();
+void test_precompile_dispatch();
+void test_create2_increments_sender_nonce_for_create_addressing();
+void test_call_frame_state_persistence();
+void test_call_value_stipend_does_not_mint_gas();
+void test_call_new_account_charge_for_empty_runtime_entry();
+void test_modexp_adjusted_exponent_gas();
+void test_out_of_gas();
+void test_invalid_opcode_and_bytecode();
+void test_memory_expansion_helper_cost();
+void test_memory_expansion_overflow_is_runtime_error();
+void test_bn254_pairing_api_input_validation();
+void test_per_opcode_gas();
+void test_api_and_error_surfaces();
+void test_uint256_and_stack_helpers();
+void test_stack_and_static_context_errors();
+void test_execution_internal_and_depth_guards();
+void test_hex_parser();
+void test_contracts_module();
+void test_nanosol_compiler_arithmetic_return();
+void test_nanosol_compiler_control_flow_and_storage();
+void test_nanosol_compiler_semantic_error();
+void test_nanosol_compiler_unterminated_block_comment();
+void test_nanosol_cli_e2e_compile_success();
+void test_nanosol_cli_e2e_run_success();
+void test_nanosol_cli_e2e_compile_failure();
+
+#endif

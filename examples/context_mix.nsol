@@ -1,0 +1,9 @@
+contract ContextMix {
+    function main() {
+        // Mixes execution context builtins and keeps only 16 low bits.
+        // x uses address/caller entropy; y uses chain/block context.
+        uint x = address() ^ caller();
+        uint y = chainid() + number();
+        return (x | y) & 0xffff;
+    }
+}
