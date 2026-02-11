@@ -104,6 +104,7 @@ const test_sources = &.{
     "tests/test_nanosol_compiler_numeric_literal_validation.c",
     "tests/test_nanosol_compiler_unterminated_block_comment.c",
     "tests/test_nanosol_cli_e2e.c",
+    "tests/test_nano_evm_cli_input_limits.c",
     "tests/test_nano_node_state_file_validation.c",
     "tests/test_state_clone_overflow_guards.c",
     "src/evm.c",
@@ -210,7 +211,9 @@ pub fn build(b: *std.Build) void {
         app_sources,
         release_cflags,
     );
-    b.installArtifact(nano_evm);
+    const install_nano_evm = b.addInstallArtifact(nano_evm, .{});
+    const evm_step = b.step("evm", "Build nano-evm");
+    evm_step.dependOn(&install_nano_evm.step);
 
     const nano_solc = add_c_executable(
         b,
@@ -257,6 +260,11 @@ pub fn build(b: *std.Build) void {
         "NANO_NODE_PATH",
         b.getInstallPath(.bin, "nano-node"),
     );
+    run_test_suite.setEnvironmentVariable(
+        "NANO_EVM_PATH",
+        b.getInstallPath(.bin, "nano-evm"),
+    );
+    run_test_suite.step.dependOn(&install_nano_evm.step);
     run_test_suite.step.dependOn(&install_node.step);
     if (b.args) |args| {
         run_test_suite.addArgs(args);
@@ -384,6 +392,21 @@ pub fn build(b: *std.Build) void {
         debug_cflags,
     );
     const run_test_suite_debug = b.addRunArtifact(test_suite_debug);
+    run_test_suite_debug.step.dependOn(&install_solc.step);
+    run_test_suite_debug.setEnvironmentVariable(
+        "NANO_SOLC_PATH",
+        b.getInstallPath(.bin, "nano-solc"),
+    );
+    run_test_suite_debug.setEnvironmentVariable(
+        "NANO_NODE_PATH",
+        b.getInstallPath(.bin, "nano-node"),
+    );
+    run_test_suite_debug.setEnvironmentVariable(
+        "NANO_EVM_PATH",
+        b.getInstallPath(.bin, "nano-evm"),
+    );
+    run_test_suite_debug.step.dependOn(&install_node.step);
+    run_test_suite_debug.step.dependOn(&install_nano_evm.step);
     if (b.args) |args| {
         run_test_suite_debug.addArgs(args);
     }

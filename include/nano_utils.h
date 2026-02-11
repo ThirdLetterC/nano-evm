@@ -1,6 +1,7 @@
 #ifndef NANO_UTILS_H
 #define NANO_UTILS_H
 
+#include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stddef.h>
@@ -8,6 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if defined(__has_include)
+#if __has_include(<stdckdint.h>)
+#include <stdckdint.h>
+#define NANO_UTILS_HAVE_STDCKDINT 1
+#endif
+#endif
+
+#ifndef NANO_UTILS_HAVE_STDCKDINT
+#define NANO_UTILS_HAVE_STDCKDINT 0
+#endif
 
 #include "uint256.h"
 
@@ -18,6 +30,38 @@ typedef enum {
   NANO_UTILS_HEX_ERR_ALLOC
 } NanoUtilsHexStatus;
 
+[[nodiscard]] [[maybe_unused]] static inline bool
+nano_utils_checked_add_size(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return false;
+  }
+#if NANO_UTILS_HAVE_STDCKDINT
+  return !ckd_add(out, a, b);
+#else
+  if (a > (SIZE_MAX - b)) {
+    return false;
+  }
+  *out = a + b;
+  return true;
+#endif
+}
+
+[[nodiscard]] [[maybe_unused]] static inline bool
+nano_utils_checked_mul_size(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return false;
+  }
+#if NANO_UTILS_HAVE_STDCKDINT
+  return !ckd_mul(out, a, b);
+#else
+  if (a != 0U && b > (SIZE_MAX / a)) {
+    return false;
+  }
+  *out = a * b;
+  return true;
+#endif
+}
+
 [[nodiscard]] [[maybe_unused]] static inline NanoUtilsHexStatus
 nano_utils_bytes_to_hex(const uint8_t *bytes, size_t size, char **out_hex) {
   static const char HEX[] = "0123456789abcdef";
@@ -25,13 +69,21 @@ nano_utils_bytes_to_hex(const uint8_t *bytes, size_t size, char **out_hex) {
     return NANO_UTILS_HEX_ERR_INVALID_ARGUMENT;
   }
   *out_hex = nullptr;
+  if (size > 0U && bytes == nullptr) {
+    return NANO_UTILS_HEX_ERR_INVALID_ARGUMENT;
+  }
 
-  if (size > (SIZE_MAX - 1U) / 2U) {
+  size_t hex_size = 0U;
+  if (!nano_utils_checked_mul_size(size, 2U, &hex_size)) {
     return NANO_UTILS_HEX_ERR_OVERFLOW;
   }
 
-  size_t hex_size = size * 2U;
-  char *hex = calloc(hex_size + 1U, sizeof(char));
+  size_t alloc_size = 0U;
+  if (!nano_utils_checked_add_size(hex_size, 1U, &alloc_size)) {
+    return NANO_UTILS_HEX_ERR_OVERFLOW;
+  }
+
+  char *hex = calloc(alloc_size, sizeof(char));
   if (hex == nullptr) {
     return NANO_UTILS_HEX_ERR_ALLOC;
   }
@@ -47,11 +99,61 @@ nano_utils_bytes_to_hex(const uint8_t *bytes, size_t size, char **out_hex) {
 }
 
 [[nodiscard]] [[maybe_unused]] static inline bool
-nano_utils_read_file_text(const char *path, char **out_text) {
+nano_utils_hex_decoded_size(const char *hex, size_t *out_size) {
+  if (hex == nullptr || out_size == nullptr) {
+    return false;
+  }
+
+  const unsigned char *cursor = (const unsigned char *)hex;
+  while (*cursor != '\0' && isspace(*cursor)) {
+    ++cursor;
+  }
+  if (cursor[0] == '0' && (cursor[1] == 'x' || cursor[1] == 'X')) {
+    cursor += 2;
+  }
+
+  size_t nibble_count = 0U;
+  bool saw_trailing_space = false;
+  while (*cursor != '\0') {
+    unsigned char c = *cursor;
+    if (isspace(c)) {
+      saw_trailing_space = true;
+      ++cursor;
+      continue;
+    }
+    if (saw_trailing_space) {
+      return false;
+    }
+
+    bool is_hex_digit = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+                        (c >= 'A' && c <= 'F');
+    if (!is_hex_digit) {
+      return false;
+    }
+    if (nibble_count == SIZE_MAX) {
+      return false;
+    }
+    nibble_count += 1U;
+    ++cursor;
+  }
+
+  if ((nibble_count % 2U) != 0U) {
+    return false;
+  }
+  *out_size = nibble_count / 2U;
+  return true;
+}
+
+[[nodiscard]] [[maybe_unused]] static inline bool
+nano_utils_read_file_text_limited(const char *path, size_t max_bytes,
+                                  char **out_text) {
   if (path == nullptr || out_text == nullptr) {
     return false;
   }
   *out_text = nullptr;
+  if (max_bytes > (SIZE_MAX - 1U)) {
+    return false;
+  }
 
   FILE *file = fopen(path, "rb");
   if (file == nullptr) {
@@ -75,13 +177,23 @@ nano_utils_read_file_text(const char *path, char **out_text) {
   }
 
   uintmax_t end_umax = (uintmax_t)end;
+  if (end_umax > (uintmax_t)max_bytes) {
+    fclose(file);
+    return false;
+  }
   if (end_umax > (uintmax_t)(SIZE_MAX - 1U)) {
     fclose(file);
     return false;
   }
 
   size_t size = (size_t)end_umax;
-  char *text = calloc(size + 1U, sizeof(char));
+  size_t alloc_size = 0U;
+  if (!nano_utils_checked_add_size(size, 1U, &alloc_size)) {
+    fclose(file);
+    return false;
+  }
+
+  char *text = calloc(alloc_size, sizeof(char));
   if (text == nullptr) {
     fclose(file);
     return false;
@@ -100,15 +212,29 @@ nano_utils_read_file_text(const char *path, char **out_text) {
 }
 
 [[nodiscard]] [[maybe_unused]] static inline bool
+nano_utils_read_file_text(const char *path, char **out_text) {
+  return nano_utils_read_file_text_limited(path, SIZE_MAX - 1U, out_text);
+}
+
+[[nodiscard]] [[maybe_unused]] static inline bool
 nano_utils_parse_u64(const char *text, uint64_t *out_value) {
   if (text == nullptr || out_value == nullptr) {
     return false;
   }
 
+  const unsigned char *cursor = (const unsigned char *)text;
+  while (*cursor != '\0' && isspace(*cursor)) {
+    ++cursor;
+  }
+  if (*cursor == '\0' || *cursor == '-') {
+    return false;
+  }
+
   errno = 0;
   char *end = nullptr;
-  uintmax_t parsed = strtoumax(text, &end, 0);
-  if (errno != 0 || end == text || *end != '\0' || parsed > UINT64_MAX) {
+  uintmax_t parsed = strtoumax((const char *)cursor, &end, 0);
+  if (errno != 0 || end == (char *)cursor || *end != '\0' ||
+      parsed > UINT64_MAX) {
     return false;
   }
 

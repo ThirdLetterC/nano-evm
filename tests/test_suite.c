@@ -44,8 +44,11 @@ int main() {
   test_nanosol_cli_e2e_compile_success();
   test_nanosol_cli_e2e_run_success();
   test_nanosol_cli_e2e_compile_failure();
+  test_nano_evm_rejects_oversized_cli_bytecode();
   test_nano_node_rejects_oversized_code_state();
   test_nano_node_rejects_runtime_account_invalid_flags();
+  test_nano_node_call_rejects_oversized_calldata_hex();
+  test_nano_node_call_rejects_oversized_command_word_index();
   test_state_clone_overflow_guards();
 
   puts("All tests passed.");

@@ -10,6 +10,8 @@
 #include "stack.h"
 #include "uint256.h"
 
+static constexpr size_t NANOSOL_SOURCE_MAX_BYTES = 4U * 1'024U * 1'024U;
+
 static void print_usage(const char *prog) {
   fprintf(stderr, "Usage: %s <source.nsol> [--run] [gas-limit]\n", prog);
 }
@@ -182,8 +184,12 @@ int main(int argc, char **argv) {
   }
 
   char *source = nullptr;
-  if (!nano_utils_read_file_text(argv[1], &source)) {
-    fprintf(stderr, "Failed to read file: %s\n", argv[1]);
+  if (!nano_utils_read_file_text_limited(argv[1], NANOSOL_SOURCE_MAX_BYTES,
+                                         &source)) {
+    fprintf(stderr,
+            "Failed to read file or exceeded max source size (%zu bytes): "
+            "%s\n",
+            NANOSOL_SOURCE_MAX_BYTES, argv[1]);
     return 1;
   }
 

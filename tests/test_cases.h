@@ -42,8 +42,11 @@ void test_nanosol_compiler_unterminated_block_comment();
 void test_nanosol_cli_e2e_compile_success();
 void test_nanosol_cli_e2e_run_success();
 void test_nanosol_cli_e2e_compile_failure();
+void test_nano_evm_rejects_oversized_cli_bytecode();
 void test_nano_node_rejects_oversized_code_state();
 void test_nano_node_rejects_runtime_account_invalid_flags();
+void test_nano_node_call_rejects_oversized_calldata_hex();
+void test_nano_node_call_rejects_oversized_command_word_index();
 void test_state_clone_overflow_guards();
 
 #endif

@@ -47,6 +47,9 @@ static constexpr uint32_t NODE_STATE_VERSION_STORAGE_ONLY = 1U;
 static constexpr uint64_t DEFAULT_GAS_LIMIT = 3'000'000U;
 static constexpr uint64_t DEFAULT_CALLER = 1U;
 static constexpr uint64_t DEFAULT_CONTRACT_ADDRESS = 0x100U;
+static constexpr size_t NODE_CALLDATA_MAX_BYTES = 32U * 1'024U;
+static constexpr size_t NODE_CALLDATA_MAX_WORDS = NODE_CALLDATA_MAX_BYTES / 32U;
+static constexpr size_t NODE_SOURCE_MAX_BYTES = 4U * 1'024U * 1'024U;
 static constexpr size_t NODE_STATE_MAX_FILE_BYTES = 256U * 1'024U * 1'024U;
 static constexpr size_t NODE_STATE_MAX_CODE_SIZE = 24'576U;
 static constexpr size_t NODE_STATE_MAX_STORAGE_ENTRIES = 1'000'000U;
@@ -836,11 +839,32 @@ static bool node_state_load(const char *path, NodeState *out_state) {
   return true;
 }
 
-static bool parse_hex_blob(const char *hex, uint8_t **out_bytes,
-                           size_t *out_size) {
+static bool parse_hex_blob_limited(const char *hex, size_t max_size,
+                                   const char *label, uint8_t **out_bytes,
+                                   size_t *out_size) {
+  size_t decoded_size = 0U;
+  if (!nano_utils_hex_decoded_size(hex, &decoded_size)) {
+    fprintf(stderr, "%s parse failed: %s\n", label,
+            evm_status_string(EVM_ERR_HEX_PARSE));
+    return false;
+  }
+  if (decoded_size > max_size) {
+    fprintf(stderr, "%s exceeds max size (%zu > %zu bytes)\n", label,
+            decoded_size, max_size);
+    return false;
+  }
+
   EVM_Status status = evm_load_hex(hex, out_bytes, out_size);
   if (status != EVM_OK) {
-    fprintf(stderr, "Hex parse failed: %s\n", evm_status_string(status));
+    fprintf(stderr, "%s parse failed: %s\n", label, evm_status_string(status));
+    return false;
+  }
+  if (*out_size > max_size) {
+    free(*out_bytes);
+    *out_bytes = nullptr;
+    *out_size = 0U;
+    fprintf(stderr, "%s exceeds max size (%zu > %zu bytes)\n", label,
+            decoded_size, max_size);
     return false;
   }
   return true;
@@ -876,7 +900,7 @@ static bool parse_word(const char *text, uint256_t *out_word) {
 
     uint8_t *bytes = nullptr;
     size_t size = 0;
-    if (!parse_hex_blob(parse_text, &bytes, &size)) {
+    if (!parse_hex_blob_limited(parse_text, SIZE_MAX, "Hex", &bytes, &size)) {
       free(normalized);
       return false;
     }
@@ -1004,8 +1028,12 @@ static bool command_words_ensure_size(uint256_t **words, size_t *word_count,
 static bool compile_source(const char *path, uint8_t **out_code,
                            size_t *out_size) {
   char *source = nullptr;
-  if (!nano_utils_read_file_text(path, &source)) {
-    fprintf(stderr, "Failed to read source file: %s\n", path);
+  if (!nano_utils_read_file_text_limited(path, NODE_SOURCE_MAX_BYTES,
+                                         &source)) {
+    fprintf(stderr,
+            "Failed to read source file or exceeded max source size (%zu "
+            "bytes): %s\n",
+            NODE_SOURCE_MAX_BYTES, path);
     return false;
   }
 
@@ -1109,11 +1137,14 @@ static bool build_word_calldata(const uint256_t *words, size_t word_count,
     *out_size = 0U;
     return true;
   }
-  if (words == nullptr || word_count > (SIZE_MAX / 32U)) {
+  if (words == nullptr || word_count > NODE_CALLDATA_MAX_WORDS) {
     return false;
   }
 
-  size_t calldata_size = word_count * 32U;
+  size_t calldata_size = 0U;
+  if (!checked_mul_size(word_count, 32U, &calldata_size)) {
+    return false;
+  }
   uint8_t *buffer = calloc(calldata_size, sizeof(uint8_t));
   if (buffer == nullptr) {
     return false;
@@ -1190,9 +1221,16 @@ static int command_deploy(int argc, char **argv) {
       return 1;
     }
   } else {
-    if (!parse_hex_blob(bytecode_hex, &code, &code_size)) {
+    if (!parse_hex_blob_limited(bytecode_hex, NODE_STATE_MAX_CODE_SIZE,
+                                "Bytecode", &code, &code_size)) {
       return 1;
     }
+  }
+  if (code_size > NODE_STATE_MAX_CODE_SIZE) {
+    fprintf(stderr, "Contract bytecode too large (%zu > %zu)\n", code_size,
+            NODE_STATE_MAX_CODE_SIZE);
+    free(code);
+    return 1;
   }
 
   NodeState state;
@@ -1284,6 +1322,13 @@ static int command_call(int argc, char **argv) {
         free(command_words);
         return 1;
       }
+      if (arg_index >= NODE_CALLDATA_MAX_WORDS) {
+        fprintf(stderr,
+                "Command calldata exceeds max size (%zu words > %zu words)\n",
+                arg_index + 1U, NODE_CALLDATA_MAX_WORDS);
+        free(command_words);
+        return 1;
+      }
       if (!command_words_ensure_size(&command_words, &command_word_count,
                                      arg_index + 1U)) {
         fprintf(stderr, "Out of memory while parsing command arguments\n");
@@ -1354,6 +1399,13 @@ static int command_call(int argc, char **argv) {
     free(command_words);
     return 1;
   }
+  if (command_mode && command_word_count > NODE_CALLDATA_MAX_WORDS) {
+    fprintf(stderr,
+            "Command calldata exceeds max size (%zu words > %zu words)\n",
+            command_word_count, NODE_CALLDATA_MAX_WORDS);
+    free(command_words);
+    return 1;
+  }
 
   NodeState state;
   if (!node_state_load(state_path, &state)) {
@@ -1364,14 +1416,16 @@ static int command_call(int argc, char **argv) {
   uint8_t *calldata = nullptr;
   size_t calldata_size = 0;
   if (calldata_hex != nullptr) {
-    if (!parse_hex_blob(calldata_hex, &calldata, &calldata_size)) {
+    if (!parse_hex_blob_limited(calldata_hex, NODE_CALLDATA_MAX_BYTES,
+                                "Calldata", &calldata, &calldata_size)) {
       node_state_destroy(&state);
       return 1;
     }
   } else if (command_mode) {
     if (!build_word_calldata(command_words, command_word_count, &calldata,
                              &calldata_size)) {
-      fprintf(stderr, "Failed to allocate command calldata\n");
+      fprintf(stderr,
+              "Failed to build command calldata (size limit or allocation)\n");
       free(command_words);
       node_state_destroy(&state);
       return 1;

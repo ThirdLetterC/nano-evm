@@ -7,6 +7,8 @@
 #include "stack.h"
 #include "uint256.h"
 
+static constexpr size_t NANO_EVM_MAX_CLI_BYTECODE_BYTES = 32U * 1'024U;
+
 static void print_usage(const char *prog) {
   fprintf(stderr, "Usage: %s <hex-bytecode> [gas-limit]\n", prog);
 }
@@ -24,6 +26,18 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Invalid gas limit: %s\n", argv[2]);
       return 1;
     }
+  }
+
+  size_t decoded_bytecode_size = 0U;
+  if (!nano_utils_hex_decoded_size(argv[1], &decoded_bytecode_size)) {
+    fprintf(stderr, "Bytecode parse failed: %s\n",
+            evm_status_string(EVM_ERR_HEX_PARSE));
+    return 1;
+  }
+  if (decoded_bytecode_size > NANO_EVM_MAX_CLI_BYTECODE_BYTES) {
+    fprintf(stderr, "Bytecode exceeds max CLI input size (%zu > %zu bytes)\n",
+            decoded_bytecode_size, NANO_EVM_MAX_CLI_BYTECODE_BYTES);
+    return 1;
   }
 
   uint8_t *code = nullptr;

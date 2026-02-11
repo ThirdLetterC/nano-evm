@@ -128,6 +128,7 @@ zig-out/bin/nano-evm <hex-bytecode> [gas-limit]
 ```
 
 - `hex-bytecode` accepts optional `0x` prefix.
+- `hex-bytecode` is capped at `32768` decoded bytes (32 KiB).
 - `gas-limit` defaults to `100000` when omitted.
 
 Exit codes:
@@ -172,6 +173,11 @@ zig-out/bin/nano-node call --state /tmp/erc20.state --cmd 1 --caller 0xabc
 zig-out/bin/nano-node call --state /tmp/erc20.state --cmd 2 --arg1 0xabc
 zig-out/bin/nano-node call --state /tmp/erc20.state --cmd 3 --caller 0xabc --arg1 0xdef --arg2 100
 ```
+
+Call input limits:
+
+- `--calldata <hex>` is capped at `32768` decoded bytes (32 KiB).
+- `--cmd/--argN` command words are capped to 32 KiB equivalent payload.
 
 Inspect/reset state:
 

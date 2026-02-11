@@ -26,12 +26,25 @@ This project treats all externally supplied data as untrusted:
 - craft bytecode/calldata to stress parser and memory expansion paths
 - trigger repeated state merges/clones to exercise allocation and bounds behavior
 
+### Module Trust Boundaries
+
+- `src/evm/*`: protects VM memory safety, gas accounting, and state transition
+  determinism while consuming untrusted bytecode/calldata and contract memory
+- `src/nano_node.c`: protects persisted node-state integrity while consuming
+  untrusted CLI words, hex blobs, source files, and state-file bytes
+- `src/nanosol*.c`: protects compiler memory safety while consuming untrusted
+  NanoSol source text from disk/CLI execution paths
+
 ## Security Controls
 
 ### Validation and Bounds
 
 - explicit max limits for node state file size, bytecode size, and table counts
+- explicit CLI payload ceilings for `nano-node call` calldata and `nano-evm`
+  bytecode input (32 KiB each)
+- explicit NanoSol source size limits in CLI/node code paths (4 MiB)
 - strict parser rejection for malformed hex, numeric literals, and state headers
+- unsigned integer CLI parser rejects negative signed text before conversion
 - bounds-checked memory growth and copy helpers in VM execution paths
 
 ### Checked Arithmetic

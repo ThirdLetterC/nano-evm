@@ -1,5 +1,7 @@
 #include "test_helpers.h"
 
+#include <stdio.h>
+
 void test_api_and_error_surfaces() {
   uint8_t *code = nullptr;
   size_t size = 0;
@@ -32,6 +34,41 @@ void test_api_and_error_surfaces() {
   assert(status == EVM_ERR_HEX_PARSE);
   assert(code == nullptr);
   assert(size == 0U);
+
+  uint64_t parsed_u64 = 0U;
+  assert(!nano_utils_parse_u64("-1", &parsed_u64));
+  assert(!nano_utils_parse_u64("   -2", &parsed_u64));
+  assert(nano_utils_parse_u64("42", &parsed_u64));
+  assert(parsed_u64 == 42U);
+  assert(nano_utils_parse_u64("0x2a", &parsed_u64));
+  assert(parsed_u64 == 42U);
+
+  size_t decoded_hex_size = 0U;
+  assert(nano_utils_hex_decoded_size("0x00ff", &decoded_hex_size));
+  assert(decoded_hex_size == 2U);
+  assert(nano_utils_hex_decoded_size("  0x00ff  \t", &decoded_hex_size));
+  assert(decoded_hex_size == 2U);
+  assert(!nano_utils_hex_decoded_size("0x0", &decoded_hex_size));
+  assert(!nano_utils_hex_decoded_size("0x00 ff", &decoded_hex_size));
+
+  static const char *limited_text_path = "/tmp/nano_utils_limited_read.txt";
+  static const char *limited_text = "nano";
+  FILE *limited_text_file = fopen(limited_text_path, "wb");
+  assert(limited_text_file != nullptr);
+  assert(fwrite(limited_text, sizeof(char), strlen(limited_text),
+                limited_text_file) == strlen(limited_text));
+  assert(fclose(limited_text_file) == 0);
+
+  char *limited_read = (char *)(uintptr_t)1U;
+  assert(
+      !nano_utils_read_file_text_limited(limited_text_path, 3U, &limited_read));
+  assert(limited_read == nullptr);
+  assert(
+      nano_utils_read_file_text_limited(limited_text_path, 4U, &limited_read));
+  assert(limited_read != nullptr);
+  assert(strcmp(limited_read, limited_text) == 0);
+  free(limited_read);
+  assert(remove(limited_text_path) == 0);
 
   assert(strcmp(evm_status_string(EVM_OK), "OK") == 0);
   assert(strcmp(evm_status_string(EVM_ERR_OOM), "OUT_OF_MEMORY") == 0);

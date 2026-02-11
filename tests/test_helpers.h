@@ -11,6 +11,7 @@
 #include "contracts.h"
 #include "evm.h"
 #include "keccak.h"
+#include "nano_utils.h"
 #include "nanosol.h"
 #include "stack.h"
 #include "uint256.h"
