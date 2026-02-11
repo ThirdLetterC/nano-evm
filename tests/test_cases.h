@@ -47,6 +47,7 @@ void test_nano_node_rejects_oversized_code_state();
 void test_nano_node_rejects_runtime_account_invalid_flags();
 void test_nano_node_call_rejects_oversized_calldata_hex();
 void test_nano_node_call_rejects_oversized_command_word_index();
+void test_nano_node_call_rejects_oversized_command_word_hex();
 void test_state_clone_overflow_guards();
 
 #endif

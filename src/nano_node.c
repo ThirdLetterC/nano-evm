@@ -49,6 +49,9 @@ static constexpr uint64_t DEFAULT_CALLER = 1U;
 static constexpr uint64_t DEFAULT_CONTRACT_ADDRESS = 0x100U;
 static constexpr size_t NODE_CALLDATA_MAX_BYTES = 32U * 1'024U;
 static constexpr size_t NODE_CALLDATA_MAX_WORDS = NODE_CALLDATA_MAX_BYTES / 32U;
+static constexpr size_t NODE_WORD_MAX_BYTES = 32U;
+static constexpr size_t NODE_WORD_MAX_HEX_DIGITS = NODE_WORD_MAX_BYTES * 2U;
+static constexpr size_t NODE_WORD_MAX_DECIMAL_SIGNIFICANT_DIGITS = 78U;
 static constexpr size_t NODE_SOURCE_MAX_BYTES = 4U * 1'024U * 1'024U;
 static constexpr size_t NODE_STATE_MAX_FILE_BYTES = 256U * 1'024U * 1'024U;
 static constexpr size_t NODE_STATE_MAX_CODE_SIZE = 24'576U;
@@ -878,6 +881,11 @@ static bool parse_word(const char *text, uint256_t *out_word) {
   if ((strncmp(text, "0x", 2) == 0) || (strncmp(text, "0X", 2) == 0)) {
     const char *hex_digits = text + 2;
     size_t digits_len = strlen(hex_digits);
+    if (digits_len > NODE_WORD_MAX_HEX_DIGITS) {
+      fprintf(stderr, "Word too wide (>32 bytes): %s\n", text);
+      return false;
+    }
+
     char *normalized = nullptr;
     const char *parse_text = text;
     if ((digits_len % 2U) != 0U) {
@@ -900,11 +908,12 @@ static bool parse_word(const char *text, uint256_t *out_word) {
 
     uint8_t *bytes = nullptr;
     size_t size = 0;
-    if (!parse_hex_blob_limited(parse_text, SIZE_MAX, "Hex", &bytes, &size)) {
+    if (!parse_hex_blob_limited(parse_text, NODE_WORD_MAX_BYTES, "Hex", &bytes,
+                                &size)) {
       free(normalized);
       return false;
     }
-    if (size > 32U) {
+    if (size > NODE_WORD_MAX_BYTES) {
       fprintf(stderr, "Word too wide (>32 bytes): %s\n", text);
       free(bytes);
       free(normalized);
@@ -928,13 +937,29 @@ static bool parse_word(const char *text, uint256_t *out_word) {
     return false;
   }
 
-  uint256_t value = uint256_zero();
-  for (; *cursor != '\0'; ++cursor) {
-    if (*cursor < '0' || *cursor > '9') {
+  while (*cursor == '0') {
+    ++cursor;
+  }
+  if (*cursor == '\0') {
+    *out_word = uint256_zero();
+    return true;
+  }
+
+  size_t significant_digits = 0U;
+  for (const char *scan = cursor; *scan != '\0'; ++scan) {
+    if (*scan < '0' || *scan > '9') {
       fprintf(stderr, "Invalid integer word: %s\n", text);
       return false;
     }
+    significant_digits += 1U;
+    if (significant_digits > NODE_WORD_MAX_DECIMAL_SIGNIFICANT_DIGITS) {
+      fprintf(stderr, "Word too large for uint256: %s\n", text);
+      return false;
+    }
+  }
 
+  uint256_t value = uint256_zero();
+  for (; *cursor != '\0'; ++cursor) {
     uint64_t carry = (uint64_t)(*cursor - '0');
     for (size_t limb = 0; limb < 4U; ++limb) {
       uint64_t current = value.limbs[limb];

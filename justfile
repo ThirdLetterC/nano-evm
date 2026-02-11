@@ -13,6 +13,12 @@ format:
 test:
     zig build test
 
+security:
+    zig build test
+    zig build test-debug
+    zig build fuzz
+    zig build fuzz-debug
+
 examples:
     zig build examples
 

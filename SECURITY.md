@@ -42,6 +42,8 @@ This project treats all externally supplied data as untrusted:
 - explicit max limits for node state file size, bytecode size, and table counts
 - explicit CLI payload ceilings for `nano-node call` calldata and `nano-evm`
   bytecode input (32 KiB each)
+- explicit 32-byte bound on CLI `--cmd/--argN/--caller/--value/--address` word
+  hex literals before decode/allocation
 - explicit NanoSol source size limits in CLI/node code paths (4 MiB)
 - strict parser rejection for malformed hex, numeric literals, and state headers
 - unsigned integer CLI parser rejects negative signed text before conversion

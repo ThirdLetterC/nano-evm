@@ -76,6 +76,9 @@ Default flags come from `build.zig`:
 
 - `-std=c23`
 - `-Wall -Wextra -Wpedantic -Werror`
+- `-Wformat -Wformat-security`
+- `-fstack-protector-strong -D_FORTIFY_SOURCE=3`
+- `-fPIE` and linker hardening (`RELRO` + `NOW`)
 
 ## Test
 
@@ -100,6 +103,12 @@ zig build test-debug
 ```
 
 Note: LeakSanitizer can fail to run in ptrace-restricted environments.
+
+Security baseline one-shot via `just`:
+
+```bash
+just security
+```
 
 Fuzz harness binaries:
 

@@ -49,6 +49,7 @@ int main() {
   test_nano_node_rejects_runtime_account_invalid_flags();
   test_nano_node_call_rejects_oversized_calldata_hex();
   test_nano_node_call_rejects_oversized_command_word_index();
+  test_nano_node_call_rejects_oversized_command_word_hex();
   test_state_clone_overflow_guards();
 
   puts("All tests passed.");

@@ -306,3 +306,41 @@ void test_nano_node_call_rejects_oversized_command_word_index() {
   free(args);
   cleanup_cli_files(state_path, stdout_path, stderr_path, &result);
 }
+
+void test_nano_node_call_rejects_oversized_command_word_hex() {
+  static const char *state_path = "/tmp/nano_node_call_cmd_word_limit.bin";
+  static const char *stdout_path = "/tmp/nano_node_call_cmd_word_limit.out";
+  static const char *stderr_path = "/tmp/nano_node_call_cmd_word_limit.err";
+
+  write_stop_code_state(state_path);
+
+  FILE *file = fopen(stdout_path, "wb");
+  assert(file != nullptr);
+  assert(fclose(file) == 0);
+  file = fopen(stderr_path, "wb");
+  assert(file != nullptr);
+  assert(fclose(file) == 0);
+
+  char *oversized_cmd_word = make_hex_payload(33U);
+  int args_len =
+      snprintf(nullptr, 0, "call --state \"%s\" --cmd \"%s\"", state_path,
+               oversized_cmd_word);
+  assert(args_len > 0);
+
+  size_t args_size = 0U;
+  assert(nano_utils_checked_add_size((size_t)args_len, 1U, &args_size));
+  char *args = calloc(args_size, sizeof(char));
+  assert(args != nullptr);
+  int written = snprintf(args, args_size, "call --state \"%s\" --cmd \"%s\"",
+                         state_path, oversized_cmd_word);
+  assert(written == args_len);
+
+  node_cli_result_t result =
+      run_nano_node_command(args, stdout_path, stderr_path);
+  assert(result.raw_status != 0);
+  assert(strstr(result.stderr_text, "Word too wide (>32 bytes)") != nullptr);
+
+  free(args);
+  free(oversized_cmd_word);
+  cleanup_cli_files(state_path, stdout_path, stderr_path, &result);
+}
