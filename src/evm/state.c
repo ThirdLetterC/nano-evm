@@ -1185,13 +1185,24 @@ EVM_Status merge_child_logs(EVM_State *vm, const EVM_State *child) {
   }
 
   size_t original_count = vm->logs_count;
+  EVM_Status fail_status = EVM_ERR_OOM;
   for (size_t i = 0; i < child->logs_count; ++i) {
+    if (child->logs[i].topics_count > 4U) {
+      fail_status = EVM_ERR_INTERNAL;
+      goto fail;
+    }
+    if (child->logs[i].data_size > 0U && child->logs[i].data == nullptr) {
+      fail_status = EVM_ERR_INTERNAL;
+      goto fail;
+    }
+
     if (vm->logs_count == vm->logs_capacity) {
       EVM_Status status =
           reserve_realloc_array((void **)&vm->logs, &vm->logs_capacity,
                                 vm->logs_count + 1U, sizeof(EVM_LogEntry));
       if (status != EVM_OK) {
-        goto oom;
+        fail_status = status;
+        goto fail;
       }
     }
 
@@ -1204,7 +1215,8 @@ EVM_Status merge_child_logs(EVM_State *vm, const EVM_State *child) {
     if (child->logs[i].data_size > 0U) {
       entry.data = calloc(child->logs[i].data_size, sizeof(uint8_t));
       if (entry.data == nullptr) {
-        goto oom;
+        fail_status = EVM_ERR_OOM;
+        goto fail;
       }
       memcpy(entry.data, child->logs[i].data, child->logs[i].data_size);
       entry.data_size = child->logs[i].data_size;
@@ -1215,13 +1227,13 @@ EVM_Status merge_child_logs(EVM_State *vm, const EVM_State *child) {
 
   return EVM_OK;
 
-oom:
+fail:
   for (size_t i = original_count; i < vm->logs_count; ++i) {
     free(vm->logs[i].data);
     vm->logs[i].data = nullptr;
   }
   vm->logs_count = original_count;
-  return EVM_ERR_OOM;
+  return fail_status;
 }
 
 uint256_t block_hash_lookup(const EVM_State *vm, const uint256_t *number) {

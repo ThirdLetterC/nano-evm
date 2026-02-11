@@ -6,6 +6,11 @@ const release_cflags = &.{
     "-Wextra",
     "-Wpedantic",
     "-Werror",
+    "-Wformat",
+    "-Wformat-security",
+    "-fstack-protector-strong",
+    "-fPIE",
+    "-D_FORTIFY_SOURCE=3",
     "-DNANO_EVM_DISABLE_CPU_DISPATCH=1",
     "-O2",
 };
@@ -16,6 +21,10 @@ const debug_cflags = &.{
     "-Wextra",
     "-Wpedantic",
     "-Werror",
+    "-Wformat",
+    "-Wformat-security",
+    "-fstack-protector-strong",
+    "-fPIE",
     "-DNANO_EVM_DISABLE_CPU_DISPATCH=1",
     "-O0",
     "-g3",
@@ -138,11 +147,22 @@ fn add_c_executable(
         .name = name,
         .root_module = module,
     });
+    add_hardening_linker_flags(exe, target);
     exe.linkSystemLibrary("crypto");
     exe.linkSystemLibrary("secp256k1");
     exe.linkSystemLibrary("gmp");
     exe.linkSystemLibrary("b2");
     return exe;
+}
+
+fn add_hardening_linker_flags(
+    exe: *std.Build.Step.Compile,
+    target: std.Build.ResolvedTarget,
+) void {
+    _ = target;
+    exe.pie = true;
+    exe.link_z_relro = true;
+    exe.link_z_lazy = false;
 }
 
 pub fn build(b: *std.Build) void {

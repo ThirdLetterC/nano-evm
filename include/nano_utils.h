@@ -73,7 +73,13 @@ nano_utils_read_file_text(const char *path, char **out_text) {
     return false;
   }
 
-  size_t size = (size_t)end;
+  uintmax_t end_umax = (uintmax_t)end;
+  if (end_umax > (uintmax_t)(SIZE_MAX - 1U)) {
+    fclose(file);
+    return false;
+  }
+
+  size_t size = (size_t)end_umax;
   char *text = calloc(size + 1U, sizeof(char));
   if (text == nullptr) {
     fclose(file);

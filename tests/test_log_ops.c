@@ -1,4 +1,5 @@
 #include "test_helpers.h"
+#include "evm/gas_and_storage_internal.h"
 
 void test_log_ops() {
   EVM_State vm;
@@ -22,4 +23,24 @@ void test_log_ops() {
   assert(vm.logs[0].data[0] == 0x00);
   assert(vm.memory_size == 32);
   cleanup(&vm, code);
+
+  EVM_State guard_vm;
+  status = evm_init(&guard_vm, nullptr, 0U, 0U);
+  assert(status == EVM_OK);
+
+  uint256_t topics[4] = {uint256_zero(), uint256_zero(), uint256_zero(),
+                         uint256_zero()};
+  status = append_log(&guard_vm, topics, 5U, nullptr, 0U);
+  assert(status == EVM_ERR_RUNTIME);
+  assert(guard_vm.logs_count == 0U);
+
+  status = append_log(&guard_vm, topics, 1U, nullptr, 1U);
+  assert(status == EVM_ERR_INTERNAL);
+  assert(guard_vm.logs_count == 0U);
+
+  status = append_log(&guard_vm, nullptr, 1U, nullptr, 0U);
+  assert(status == EVM_ERR_INTERNAL);
+  assert(guard_vm.logs_count == 0U);
+
+  evm_destroy(&guard_vm);
 }

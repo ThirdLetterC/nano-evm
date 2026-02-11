@@ -2,6 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__has_include)
+#if __has_include(<stdckdint.h>)
+#include <stdckdint.h>
+#define NANO_EVM_HAVE_STDCKDINT 1
+#endif
+#endif
+
+#ifndef NANO_EVM_HAVE_STDCKDINT
+#define NANO_EVM_HAVE_STDCKDINT 0
+#endif
+
 #include "evm/common_internal.h"
 
 int hex_value(char c) {
@@ -176,19 +187,33 @@ uint64_t opcode_base_gas_cost(uint8_t opcode) {
 }
 
 bool add_u64_overflow(uint64_t a, uint64_t b, uint64_t *out) {
+  if (out == nullptr) {
+    return true;
+  }
+#if NANO_EVM_HAVE_STDCKDINT
+  return ckd_add(out, a, b);
+#else
   if (a > UINT64_MAX - b) {
     return true;
   }
   *out = a + b;
   return false;
+#endif
 }
 
 bool mul_u64_overflow(uint64_t a, uint64_t b, uint64_t *out) {
+  if (out == nullptr) {
+    return true;
+  }
+#if NANO_EVM_HAVE_STDCKDINT
+  return ckd_mul(out, a, b);
+#else
   if (a != 0 && b > UINT64_MAX / a) {
     return true;
   }
   *out = a * b;
   return false;
+#endif
 }
 
 uint64_t memory_cost_words(size_t words) {
@@ -230,19 +255,33 @@ uint64_t memory_cost_words(size_t words) {
 }
 
 bool add_size_overflow(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return true;
+  }
+#if NANO_EVM_HAVE_STDCKDINT
+  return ckd_add(out, a, b);
+#else
   if (a > SIZE_MAX - b) {
     return true;
   }
   *out = a + b;
   return false;
+#endif
 }
 
 bool mul_size_overflow(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return true;
+  }
+#if NANO_EVM_HAVE_STDCKDINT
+  return ckd_mul(out, a, b);
+#else
   if (a != 0U && b > (SIZE_MAX / a)) {
     return true;
   }
   *out = a * b;
   return false;
+#endif
 }
 
 EVM_Status reserve_realloc_array(void **buffer, size_t *capacity,

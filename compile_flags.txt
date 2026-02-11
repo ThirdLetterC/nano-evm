@@ -4,4 +4,8 @@
 -Wextra
 -Wpedantic
 -Werror
+-Wformat
+-Wformat-security
+-fstack-protector-strong
+-fPIE
 -Iinclude

@@ -5,8 +5,49 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__has_include)
+#if __has_include(<stdckdint.h>)
+#include <stdckdint.h>
+#define NANOSOL_HAVE_STDCKDINT 1
+#endif
+#endif
+
+#ifndef NANOSOL_HAVE_STDCKDINT
+#define NANOSOL_HAVE_STDCKDINT 0
+#endif
+
 #include "nanosol/common_internal.h"
 #include "nanosol/expression_internal.h"
+
+static bool checked_add_size(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return false;
+  }
+#if NANOSOL_HAVE_STDCKDINT
+  return !ckd_add(out, a, b);
+#else
+  if (a > SIZE_MAX - b) {
+    return false;
+  }
+  *out = a + b;
+  return true;
+#endif
+}
+
+static bool checked_mul_size(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return false;
+  }
+#if NANOSOL_HAVE_STDCKDINT
+  return !ckd_mul(out, a, b);
+#else
+  if (a != 0U && b > (SIZE_MAX / a)) {
+    return false;
+  }
+  *out = a * b;
+  return true;
+#endif
+}
 
 static NanoSol_Token token_make(NanoSol_TokenKind kind, size_t start,
                                 size_t length, size_t line, size_t column) {
@@ -378,8 +419,14 @@ static bool compiler_reserve_bytes(NanoSol_Compiler *compiler,
     new_capacity *= 2U;
   }
 
-  uint8_t *new_bytes =
-      realloc(compiler->bytecode.bytes, new_capacity * sizeof(uint8_t));
+  size_t new_size = 0U;
+  if (!checked_mul_size(new_capacity, sizeof(uint8_t), &new_size)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "bytecode exceeds address space");
+    return false;
+  }
+
+  uint8_t *new_bytes = realloc(compiler->bytecode.bytes, new_size);
   if (new_bytes == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, &compiler->current,
                        "out of memory");
@@ -392,7 +439,13 @@ static bool compiler_reserve_bytes(NanoSol_Compiler *compiler,
 }
 
 static bool compiler_emit_byte(NanoSol_Compiler *compiler, uint8_t byte) {
-  if (!compiler_reserve_bytes(compiler, compiler->bytecode.size + 1U)) {
+  size_t required = 0U;
+  if (!checked_add_size(compiler->bytecode.size, 1U, &required)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "bytecode exceeds address space");
+    return false;
+  }
+  if (!compiler_reserve_bytes(compiler, required)) {
     return false;
   }
   compiler->bytecode.bytes[compiler->bytecode.size] = byte;
@@ -509,8 +562,14 @@ static bool compiler_reserve_locals(NanoSol_Compiler *compiler,
     new_capacity *= 2U;
   }
 
-  NanoSol_Local *new_locals =
-      realloc(compiler->locals, new_capacity * sizeof(NanoSol_Local));
+  size_t new_size = 0U;
+  if (!checked_mul_size(new_capacity, sizeof(NanoSol_Local), &new_size)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "local table too large");
+    return false;
+  }
+
+  NanoSol_Local *new_locals = realloc(compiler->locals, new_size);
   if (new_locals == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, &compiler->current,
                        "out of memory");
@@ -580,12 +639,24 @@ bool compiler_add_local(NanoSol_Compiler *compiler,
     }
   }
 
-  if (!compiler_reserve_locals(compiler, compiler->locals_count + 1U)) {
+  size_t required_locals = 0U;
+  if (!checked_add_size(compiler->locals_count, 1U, &required_locals)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, name_token,
+                       "local table too large");
+    return false;
+  }
+  if (!compiler_reserve_locals(compiler, required_locals)) {
     return false;
   }
 
   size_t name_length = name_token->length;
-  char *name_copy = calloc(name_length + 1U, sizeof(char));
+  size_t name_storage = 0U;
+  if (!checked_add_size(name_length, 1U, &name_storage)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, name_token,
+                       "identifier too long");
+    return false;
+  }
+  char *name_copy = calloc(name_storage, sizeof(char));
   if (name_copy == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, name_token,
                        "out of memory");
@@ -627,8 +698,14 @@ static bool compiler_reserve_functions(NanoSol_Compiler *compiler,
     new_capacity *= 2U;
   }
 
-  NanoSol_Function *new_functions =
-      realloc(compiler->functions, new_capacity * sizeof(NanoSol_Function));
+  size_t new_size = 0U;
+  if (!checked_mul_size(new_capacity, sizeof(NanoSol_Function), &new_size)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "function table too large");
+    return false;
+  }
+
+  NanoSol_Function *new_functions = realloc(compiler->functions, new_size);
   if (new_functions == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, &compiler->current,
                        "out of memory");
@@ -672,12 +749,24 @@ bool compiler_add_function_declaration(NanoSol_Compiler *compiler,
     return false;
   }
 
-  if (!compiler_reserve_functions(compiler, compiler->functions_count + 1U)) {
+  size_t required_functions = 0U;
+  if (!checked_add_size(compiler->functions_count, 1U, &required_functions)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, name_token,
+                       "function table too large");
+    return false;
+  }
+  if (!compiler_reserve_functions(compiler, required_functions)) {
     return false;
   }
 
   size_t name_length = name_token->length;
-  char *name_copy = calloc(name_length + 1U, sizeof(char));
+  size_t name_storage = 0U;
+  if (!checked_add_size(name_length, 1U, &name_storage)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, name_token,
+                       "identifier too long");
+    return false;
+  }
+  char *name_copy = calloc(name_storage, sizeof(char));
   if (name_copy == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, name_token,
                        "out of memory");
@@ -719,8 +808,14 @@ static bool compiler_reserve_labels(NanoSol_Compiler *compiler,
     new_capacity *= 2U;
   }
 
-  NanoSol_Label *new_labels =
-      realloc(compiler->labels, new_capacity * sizeof(NanoSol_Label));
+  size_t new_size = 0U;
+  if (!checked_mul_size(new_capacity, sizeof(NanoSol_Label), &new_size)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "too many labels");
+    return false;
+  }
+
+  NanoSol_Label *new_labels = realloc(compiler->labels, new_size);
   if (new_labels == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, &compiler->current,
                        "out of memory");
@@ -748,8 +843,14 @@ static bool compiler_reserve_patches(NanoSol_Compiler *compiler,
     new_capacity *= 2U;
   }
 
-  NanoSol_Patch *new_patches =
-      realloc(compiler->patches, new_capacity * sizeof(NanoSol_Patch));
+  size_t new_size = 0U;
+  if (!checked_mul_size(new_capacity, sizeof(NanoSol_Patch), &new_size)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "too many jumps");
+    return false;
+  }
+
+  NanoSol_Patch *new_patches = realloc(compiler->patches, new_size);
   if (new_patches == nullptr) {
     compiler_set_error(compiler, NANOSOL_ERR_COMPILE_ALLOC, &compiler->current,
                        "out of memory");
@@ -761,7 +862,9 @@ static bool compiler_reserve_patches(NanoSol_Compiler *compiler,
 }
 
 size_t compiler_new_label(NanoSol_Compiler *compiler) {
-  if (!compiler_reserve_labels(compiler, compiler->labels_count + 1U)) {
+  size_t required_labels = 0U;
+  if (!checked_add_size(compiler->labels_count, 1U, &required_labels) ||
+      !compiler_reserve_labels(compiler, required_labels)) {
     return SIZE_MAX;
   }
   size_t label_index = compiler->labels_count;
@@ -796,7 +899,13 @@ bool compiler_emit_push_label(NanoSol_Compiler *compiler, size_t label_index) {
     return false;
   }
 
-  if (!compiler_reserve_patches(compiler, compiler->patches_count + 1U)) {
+  size_t required_patches = 0U;
+  if (!checked_add_size(compiler->patches_count, 1U, &required_patches)) {
+    compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                       &compiler->current, "too many jumps");
+    return false;
+  }
+  if (!compiler_reserve_patches(compiler, required_patches)) {
     return false;
   }
 

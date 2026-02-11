@@ -373,6 +373,19 @@ EVM_Status sstore_berlin(EVM_State *vm, const uint256_t *key,
 EVM_Status append_log(EVM_State *vm, const uint256_t topics[4],
                       size_t topics_count, const uint8_t *data,
                       size_t data_size) {
+  if (vm == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
+  if (topics_count > 4U) {
+    return EVM_ERR_RUNTIME;
+  }
+  if (topics_count > 0U && topics == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
+  if (data_size > 0U && data == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
+
   if (vm->logs_count == vm->logs_capacity) {
     EVM_Status status =
         reserve_realloc_array((void **)&vm->logs, &vm->logs_capacity,

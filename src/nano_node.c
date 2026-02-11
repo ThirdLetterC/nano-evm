@@ -717,6 +717,10 @@ static bool parse_word(const char *text, uint256_t *out_word) {
     char *normalized = nullptr;
     const char *parse_text = text;
     if ((digits_len % 2U) != 0U) {
+      if (digits_len > SIZE_MAX - 4U) {
+        fprintf(stderr, "Hex word too large: %s\n", text);
+        return false;
+      }
       normalized = calloc(digits_len + 4U, sizeof(char));
       if (normalized == nullptr) {
         fprintf(stderr, "Out of memory while normalizing hex word\n");
