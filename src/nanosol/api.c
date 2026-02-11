@@ -5,6 +5,23 @@
 #include "nanosol/common_internal.h"
 #include "nanosol/program_internal.h"
 
+static bool nanosol_source_length_bounded(const char *source,
+                                          size_t *out_source_length) {
+  if (source == nullptr || out_source_length == nullptr) {
+    return false;
+  }
+
+  size_t length = 0U;
+  while (length <= NANOSOL_MAX_SOURCE_SIZE) {
+    if (source[length] == '\0') {
+      *out_source_length = length;
+      return true;
+    }
+    length += 1U;
+  }
+  return false;
+}
+
 NanoSol_Status nanosol_compile(const char *source, uint8_t **out_bytecode,
                                size_t *out_size, char *out_error,
                                size_t out_error_size) {
@@ -18,8 +35,19 @@ NanoSol_Status nanosol_compile(const char *source, uint8_t **out_bytecode,
     out_error[0] = '\0';
   }
 
+  size_t source_length = 0U;
+  if (!nanosol_source_length_bounded(source, &source_length)) {
+    if (out_error != nullptr && out_error_size > 0) {
+      (void)snprintf(
+          out_error, out_error_size,
+          "source exceeds maximum size (%zu bytes) or is not NUL-terminated",
+          NANOSOL_MAX_SOURCE_SIZE);
+    }
+    return NANOSOL_ERR_INVALID_ARGUMENT;
+  }
+
   NanoSol_Compiler compiler;
-  compiler_init(&compiler, source, out_error, out_error_size);
+  compiler_init(&compiler, source, source_length, out_error, out_error_size);
 
   bool parsed = compiler_parse_program(&compiler);
   if (parsed && compiler.status == NANOSOL_OK) {

@@ -22,36 +22,76 @@ EVM_Status evm_load_hex(const char *hex, uint8_t **out_code, size_t *out_size) {
     hex += 2;
   }
 
-  size_t len = strlen(hex);
-  while (len > 0) {
-    unsigned char c = (unsigned char)hex[len - 1U];
-    if (c == ' ' || (c >= '\t' && c <= '\r')) {
-      --len;
+  size_t nibble_count = 0U;
+  bool saw_trailing_space = false;
+  for (const char *cursor = hex; *cursor != '\0'; ++cursor) {
+    unsigned char c = (unsigned char)*cursor;
+    if (isspace(c)) {
+      saw_trailing_space = true;
       continue;
     }
-    break;
+    if (saw_trailing_space) {
+      return EVM_ERR_HEX_PARSE;
+    }
+    if (hex_value((char)c) < 0) {
+      return EVM_ERR_HEX_PARSE;
+    }
+    if (nibble_count == SIZE_MAX) {
+      return EVM_ERR_HEX_PARSE;
+    }
+    nibble_count += 1U;
   }
-  if (len == 0) {
+
+  if (nibble_count == 0U) {
     return EVM_OK;
   }
-  if (len % 2U != 0) {
+  if ((nibble_count % 2U) != 0U) {
     return EVM_ERR_HEX_PARSE;
   }
 
-  size_t byte_len = len / 2U;
+  size_t byte_len = nibble_count / 2U;
   uint8_t *code = calloc(byte_len, sizeof(uint8_t));
   if (code == nullptr) {
     return EVM_ERR_OOM;
   }
 
-  for (size_t i = 0; i < byte_len; ++i) {
-    int hi = hex_value(hex[i * 2U]);
-    int lo = hex_value(hex[i * 2U + 1U]);
-    if (hi < 0 || lo < 0) {
+  size_t out_index = 0U;
+  int hi_nibble = -1;
+  saw_trailing_space = false;
+  for (const char *cursor = hex; *cursor != '\0'; ++cursor) {
+    unsigned char c = (unsigned char)*cursor;
+    if (isspace(c)) {
+      saw_trailing_space = true;
+      continue;
+    }
+    if (saw_trailing_space) {
       free(code);
       return EVM_ERR_HEX_PARSE;
     }
-    code[i] = (uint8_t)((hi << 4) | lo);
+
+    int value = hex_value((char)c);
+    if (value < 0) {
+      free(code);
+      return EVM_ERR_HEX_PARSE;
+    }
+
+    if (hi_nibble < 0) {
+      hi_nibble = value;
+      continue;
+    }
+
+    if (out_index >= byte_len) {
+      free(code);
+      return EVM_ERR_HEX_PARSE;
+    }
+    code[out_index++] = (uint8_t)(((unsigned int)hi_nibble << 4U) |
+                                  (unsigned int)value);
+    hi_nibble = -1;
+  }
+
+  if (hi_nibble >= 0 || out_index != byte_len) {
+    free(code);
+    return EVM_ERR_HEX_PARSE;
   }
 
   *out_code = code;

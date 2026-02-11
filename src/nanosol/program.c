@@ -40,6 +40,11 @@ static bool compiler_scan_parameter_count(NanoSol_Compiler *compiler,
         return false;
       }
 
+      if (parameter_count == SIZE_MAX) {
+        compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, scan_token,
+                           "parameter list too large");
+        return false;
+      }
       parameter_count += 1U;
       if (scan_token->kind != TOKEN_COMMA) {
         break;
@@ -81,6 +86,11 @@ static bool compiler_scan_skip_function_body(NanoSol_Compiler *compiler,
       return false;
     }
     if (scan_token->kind == TOKEN_LBRACE) {
+      if (depth == SIZE_MAX) {
+        compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL, scan_token,
+                           "function body nesting too deep");
+        return false;
+      }
       depth += 1U;
     } else if (scan_token->kind == TOKEN_RBRACE) {
       depth -= 1U;
@@ -93,7 +103,7 @@ static bool compiler_scan_skip_function_body(NanoSol_Compiler *compiler,
 static bool compiler_collect_function_signatures(NanoSol_Compiler *compiler) {
   NanoSol_Lexer scan_lexer = {
       .source = compiler->source,
-      .source_length = strlen(compiler->source),
+      .source_length = compiler->lexer.source_length,
       .position = 0,
       .line = 1,
       .column = 1,
@@ -374,15 +384,15 @@ void compiler_destroy(NanoSol_Compiler *compiler) {
   free(compiler->bytecode.bytes);
 }
 
-void compiler_init(NanoSol_Compiler *compiler, const char *source, char *error,
-                   size_t error_size) {
+void compiler_init(NanoSol_Compiler *compiler, const char *source,
+                   size_t source_length, char *error, size_t error_size) {
   memset(compiler, 0, sizeof(*compiler));
   compiler->source = source;
   compiler->status = NANOSOL_OK;
   compiler->error = error;
   compiler->error_size = error_size;
   compiler->lexer.source = source;
-  compiler->lexer.source_length = strlen(source);
+  compiler->lexer.source_length = source_length;
   compiler->lexer.position = 0;
   compiler->lexer.line = 1;
   compiler->lexer.column = 1;

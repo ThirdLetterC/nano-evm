@@ -39,10 +39,13 @@ int main() {
   test_nanosol_compiler_arithmetic_return();
   test_nanosol_compiler_control_flow_and_storage();
   test_nanosol_compiler_semantic_error();
+  test_nanosol_compiler_numeric_literal_validation();
   test_nanosol_compiler_unterminated_block_comment();
   test_nanosol_cli_e2e_compile_success();
   test_nanosol_cli_e2e_run_success();
   test_nanosol_cli_e2e_compile_failure();
+  test_nano_node_rejects_oversized_code_state();
+  test_nano_node_rejects_runtime_account_invalid_flags();
 
   puts("All tests passed.");
   return 0;

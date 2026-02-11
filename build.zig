@@ -100,8 +100,10 @@ const test_sources = &.{
     "tests/test_nanosol_compiler_arithmetic_return.c",
     "tests/test_nanosol_compiler_control_flow_and_storage.c",
     "tests/test_nanosol_compiler_semantic_error.c",
+    "tests/test_nanosol_compiler_numeric_literal_validation.c",
     "tests/test_nanosol_compiler_unterminated_block_comment.c",
     "tests/test_nanosol_cli_e2e.c",
+    "tests/test_nano_node_state_file_validation.c",
     "src/evm.c",
     "src/evm/bn254_pairing.c",
     "src/stack.c",
@@ -220,6 +222,11 @@ pub fn build(b: *std.Build) void {
         "NANO_SOLC_PATH",
         b.getInstallPath(.bin, "nano-solc"),
     );
+    run_test_suite.setEnvironmentVariable(
+        "NANO_NODE_PATH",
+        b.getInstallPath(.bin, "nano-node"),
+    );
+    run_test_suite.step.dependOn(&install_node.step);
     if (b.args) |args| {
         run_test_suite.addArgs(args);
     }

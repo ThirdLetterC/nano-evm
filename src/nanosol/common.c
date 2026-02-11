@@ -1092,7 +1092,11 @@ bool compiler_parse_call_arguments(NanoSol_Compiler *compiler,
       if (!compiler_parse_expression(compiler)) {
         return false;
       }
-      argument_count += 1U;
+      if (!checked_add_size(argument_count, 1U, &argument_count)) {
+        compiler_set_error(compiler, NANOSOL_ERR_COMPILE_INTERNAL,
+                           &compiler->current, "argument list too large");
+        return false;
+      }
       if (!compiler_match(compiler, TOKEN_COMMA)) {
         break;
       }
@@ -1125,7 +1129,13 @@ bool compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
                                         const NanoSol_Token *token) {
   uint8_t value[32] = {0};
   size_t begin = token->start;
-  size_t end = token->start + token->length;
+  size_t end = 0U;
+  if (!checked_add_size(token->start, token->length, &end) ||
+      end > compiler->lexer.source_length) {
+    compiler_set_error(compiler, NANOSOL_ERR_PARSE, token,
+                       "invalid numeric literal");
+    return false;
+  }
   int base = 10;
 
   if (begin + 1U < end && compiler->source[begin] == '0' &&
@@ -1136,10 +1146,17 @@ bool compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
   }
 
   bool any_digit = false;
+  bool previous_was_separator = false;
   // Parse as base-N big integer via repeated multiply-add in a 256-bit buffer.
   for (size_t i = begin; i < end; ++i) {
     char c = compiler->source[i];
     if (c == '_') {
+      if (!any_digit || previous_was_separator) {
+        compiler_set_error(compiler, NANOSOL_ERR_PARSE, token,
+                           "invalid numeric literal");
+        return false;
+      }
+      previous_was_separator = true;
       continue;
     }
 
@@ -1150,6 +1167,7 @@ bool compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
       return false;
     }
     any_digit = true;
+    previous_was_separator = false;
 
     unsigned int carry = (unsigned int)digit;
     for (size_t byte_index = 32; byte_index > 0; --byte_index) {
@@ -1166,6 +1184,11 @@ bool compiler_emit_push_numeric_literal(NanoSol_Compiler *compiler,
   }
 
   if (!any_digit) {
+    compiler_set_error(compiler, NANOSOL_ERR_PARSE, token,
+                       "invalid numeric literal");
+    return false;
+  }
+  if (previous_was_separator) {
     compiler_set_error(compiler, NANOSOL_ERR_PARSE, token,
                        "invalid numeric literal");
     return false;

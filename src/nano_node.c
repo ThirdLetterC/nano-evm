@@ -36,6 +36,14 @@ static constexpr uint32_t NODE_STATE_VERSION_STORAGE_ONLY = 1U;
 static constexpr uint64_t DEFAULT_GAS_LIMIT = 3'000'000U;
 static constexpr uint64_t DEFAULT_CALLER = 1U;
 static constexpr uint64_t DEFAULT_CONTRACT_ADDRESS = 0x100U;
+static constexpr size_t NODE_STATE_MAX_FILE_BYTES = 256U * 1'024U * 1'024U;
+static constexpr size_t NODE_STATE_MAX_CODE_SIZE = 24'576U;
+static constexpr size_t NODE_STATE_MAX_STORAGE_ENTRIES = 1'000'000U;
+static constexpr size_t NODE_STATE_MAX_TRANSIENT_ENTRIES = 1'000'000U;
+static constexpr size_t NODE_STATE_MAX_RUNTIME_ACCOUNTS = 200'000U;
+static constexpr uint8_t NODE_RUNTIME_ACCOUNT_FLAG_DESTROYED = 0x01U;
+static constexpr uint8_t NODE_RUNTIME_ACCOUNT_FLAGS_ALLOWED =
+    NODE_RUNTIME_ACCOUNT_FLAG_DESTROYED;
 
 static void print_usage(const char *prog) {
   fprintf(
@@ -107,6 +115,9 @@ static void node_state_destroy(NodeState *state) {
 }
 
 static bool write_all(FILE *file, const void *data, size_t size) {
+  if (file == nullptr || (size > 0U && data == nullptr)) {
+    return false;
+  }
   const uint8_t *cursor = data;
   size_t remaining = size;
   while (remaining > 0U) {
@@ -121,6 +132,9 @@ static bool write_all(FILE *file, const void *data, size_t size) {
 }
 
 static bool read_exact(FILE *file, void *out_data, size_t size) {
+  if (file == nullptr || (size > 0U && out_data == nullptr)) {
+    return false;
+  }
   uint8_t *cursor = out_data;
   size_t remaining = size;
   while (remaining > 0U) {
@@ -155,6 +169,9 @@ static bool write_u64_le(FILE *file, uint64_t value) {
 }
 
 static bool read_u32_le(FILE *file, uint32_t *out_value) {
+  if (out_value == nullptr) {
+    return false;
+  }
   uint8_t bytes[4];
   if (!read_exact(file, bytes, sizeof(bytes))) {
     return false;
@@ -165,6 +182,9 @@ static bool read_u32_le(FILE *file, uint32_t *out_value) {
 }
 
 static bool read_u64_le(FILE *file, uint64_t *out_value) {
+  if (out_value == nullptr) {
+    return false;
+  }
   uint8_t bytes[8];
   if (!read_exact(file, bytes, sizeof(bytes))) {
     return false;
@@ -181,6 +201,9 @@ static bool write_u8(FILE *file, uint8_t value) {
 }
 
 static bool read_u8(FILE *file, uint8_t *out_value) {
+  if (out_value == nullptr) {
+    return false;
+  }
   return read_exact(file, out_value, sizeof(*out_value));
 }
 
@@ -191,6 +214,9 @@ static bool write_uint256(FILE *file, const uint256_t *value) {
 }
 
 static bool read_uint256(FILE *file, uint256_t *out_value) {
+  if (out_value == nullptr) {
+    return false;
+  }
   uint8_t bytes[32];
   if (!read_exact(file, bytes, sizeof(bytes))) {
     return false;
@@ -221,6 +247,9 @@ static bool write_storage_entries(FILE *file, const EVM_StorageEntry *entries,
 
 static bool read_storage_entries(FILE *file, EVM_StorageEntry *entries,
                                  size_t count) {
+  if (count > 0U && entries == nullptr) {
+    return false;
+  }
   for (size_t i = 0; i < count; ++i) {
     if (!read_uint256(file, &entries[i].key) ||
         !read_uint256(file, &entries[i].value)) {
@@ -245,6 +274,9 @@ static bool write_transient_entries(FILE *file,
 
 static bool read_transient_entries(FILE *file, EVM_TransientEntry *entries,
                                    size_t count) {
+  if (count > 0U && entries == nullptr) {
+    return false;
+  }
   for (size_t i = 0; i < count; ++i) {
     if (!read_uint256(file, &entries[i].key) ||
         !read_uint256(file, &entries[i].value)) {
@@ -270,7 +302,7 @@ static bool write_runtime_account(FILE *file,
 
   uint8_t flags = 0U;
   if (account->destroyed) {
-    flags |= 0x01U;
+    flags |= NODE_RUNTIME_ACCOUNT_FLAG_DESTROYED;
   }
 
   if (!write_uint256(file, &account->address) ||
@@ -294,6 +326,9 @@ static bool write_runtime_account(FILE *file,
 
 static bool read_runtime_account(FILE *file, EVM_RuntimeAccount *account,
                                  bool nonce_encoded_as_u64) {
+  if (account == nullptr) {
+    return false;
+  }
   uint64_t code_size_u64 = 0;
   uint64_t storage_count_u64 = 0;
   uint64_t transient_count_u64 = 0;
@@ -318,6 +353,9 @@ static bool read_runtime_account(FILE *file, EVM_RuntimeAccount *account,
       !read_u64_le(file, &transient_count_u64)) {
     return false;
   }
+  if ((flags & (uint8_t)~NODE_RUNTIME_ACCOUNT_FLAGS_ALLOWED) != 0U) {
+    return false;
+  }
 
 #if SIZE_MAX < UINT64_MAX
   if (code_size_u64 > SIZE_MAX || storage_count_u64 > SIZE_MAX ||
@@ -328,6 +366,11 @@ static bool read_runtime_account(FILE *file, EVM_RuntimeAccount *account,
   size_t code_size = (size_t)code_size_u64;
   size_t storage_count = (size_t)storage_count_u64;
   size_t transient_count = (size_t)transient_count_u64;
+  if (code_size > NODE_STATE_MAX_CODE_SIZE ||
+      storage_count > NODE_STATE_MAX_STORAGE_ENTRIES ||
+      transient_count > NODE_STATE_MAX_TRANSIENT_ENTRIES) {
+    return false;
+  }
   if ((storage_count > 0U &&
        storage_count > SIZE_MAX / sizeof(EVM_StorageEntry)) ||
       (transient_count > 0U &&
@@ -344,7 +387,7 @@ static bool read_runtime_account(FILE *file, EVM_RuntimeAccount *account,
   account->transient_storage_count = 0;
   account->transient_storage_capacity = 0;
   account->code_owned = false;
-  account->destroyed = ((flags & 0x01U) != 0U);
+  account->destroyed = ((flags & NODE_RUNTIME_ACCOUNT_FLAG_DESTROYED) != 0U);
   account->created_in_transaction = false;
 
   if (code_size > 0U) {
@@ -410,6 +453,9 @@ static bool write_runtime_accounts(FILE *file,
 
 static bool read_runtime_accounts(FILE *file, EVM_RuntimeAccount *accounts,
                                   size_t count, bool nonce_encoded_as_u64) {
+  if (count > 0U && accounts == nullptr) {
+    return false;
+  }
   for (size_t i = 0; i < count; ++i) {
     if (!read_runtime_account(file, &accounts[i], nonce_encoded_as_u64)) {
       return false;
@@ -517,11 +563,37 @@ static bool node_state_save(const char *path, const NodeState *state) {
 }
 
 static bool node_state_load(const char *path, NodeState *out_state) {
+  if (path == nullptr || out_state == nullptr) {
+    fprintf(stderr, "Invalid state load arguments\n");
+    return false;
+  }
   node_state_init(out_state);
 
   FILE *file = fopen(path, "rb");
   if (file == nullptr) {
     fprintf(stderr, "Failed to open state file: %s\n", path);
+    return false;
+  }
+  if (fseek(file, 0, SEEK_END) != 0) {
+    fprintf(stderr, "Failed to stat state file: %s\n", path);
+    fclose(file);
+    return false;
+  }
+  long end = ftell(file);
+  if (end < 0) {
+    fprintf(stderr, "Failed to stat state file: %s\n", path);
+    fclose(file);
+    return false;
+  }
+  if ((uintmax_t)end > (uintmax_t)NODE_STATE_MAX_FILE_BYTES) {
+    fprintf(stderr, "State file exceeds maximum size (%zu bytes): %s\n",
+            NODE_STATE_MAX_FILE_BYTES, path);
+    fclose(file);
+    return false;
+  }
+  if (fseek(file, 0, SEEK_SET) != 0) {
+    fprintf(stderr, "Failed to read state file: %s\n", path);
+    fclose(file);
     return false;
   }
 
@@ -596,6 +668,31 @@ static bool node_state_load(const char *path, NodeState *out_state) {
   size_t storage_count = (size_t)storage_count_u64;
   size_t transient_count = (size_t)transient_count_u64;
   size_t runtime_accounts_count = (size_t)runtime_accounts_count_u64;
+  if (code_size > NODE_STATE_MAX_CODE_SIZE) {
+    fprintf(stderr, "Contract bytecode too large (%zu > %zu): %s\n", code_size,
+            NODE_STATE_MAX_CODE_SIZE, path);
+    fclose(file);
+    return false;
+  }
+  if (storage_count > NODE_STATE_MAX_STORAGE_ENTRIES) {
+    fprintf(stderr, "Storage entry count exceeds limit (%zu > %zu): %s\n",
+            storage_count, NODE_STATE_MAX_STORAGE_ENTRIES, path);
+    fclose(file);
+    return false;
+  }
+  if (transient_count > NODE_STATE_MAX_TRANSIENT_ENTRIES) {
+    fprintf(stderr, "Transient storage entry count exceeds limit (%zu > %zu): "
+                    "%s\n",
+            transient_count, NODE_STATE_MAX_TRANSIENT_ENTRIES, path);
+    fclose(file);
+    return false;
+  }
+  if (runtime_accounts_count > NODE_STATE_MAX_RUNTIME_ACCOUNTS) {
+    fprintf(stderr, "Runtime account count exceeds limit (%zu > %zu): %s\n",
+            runtime_accounts_count, NODE_STATE_MAX_RUNTIME_ACCOUNTS, path);
+    fclose(file);
+    return false;
+  }
   if (storage_count > 0U &&
       storage_count > SIZE_MAX / sizeof(EVM_StorageEntry)) {
     fprintf(stderr, "Storage table too large: %s\n", path);

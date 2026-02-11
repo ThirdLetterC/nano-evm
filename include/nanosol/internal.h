@@ -134,6 +134,7 @@ typedef struct {
 static constexpr size_t LOCAL_SLOT_SIZE = 32;
 static constexpr size_t JUMP_LABEL_IMMEDIATE_BYTES = 4;
 static constexpr size_t FUNCTION_FRAME_SIZE = 1'024;
+static constexpr size_t NANOSOL_MAX_SOURCE_SIZE = 4U * 1'024U * 1'024U;
 static constexpr size_t FUNCTION_MAX_LOCAL_SLOTS =
     (FUNCTION_FRAME_SIZE / LOCAL_SLOT_SIZE) - 2U;
 static constexpr size_t FUNCTION_RETURN_ADDRESS_SLOT_OFFSET =
