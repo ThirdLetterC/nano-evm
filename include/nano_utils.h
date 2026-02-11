@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "uint256.h"
 
@@ -130,6 +131,17 @@ nano_utils_print_bytes_hex(const uint8_t *bytes, size_t size) {
   fputs("0x", stdout);
   for (size_t i = 0; i < size; ++i) {
     printf("%02x", bytes[i]);
+  }
+}
+
+[[maybe_unused]] static inline void nano_utils_secure_zero(void *ptr,
+                                                           size_t size) {
+  if (ptr == nullptr || size == 0U) {
+    return;
+  }
+  volatile uint8_t *bytes = (volatile uint8_t *)ptr;
+  for (size_t i = 0; i < size; ++i) {
+    bytes[i] = 0U;
   }
 }
 

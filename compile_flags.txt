@@ -8,4 +8,5 @@
 -Wformat-security
 -fstack-protector-strong
 -fPIE
+-D_FORTIFY_SOURCE=3
 -Iinclude

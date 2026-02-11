@@ -46,6 +46,7 @@ int main() {
   test_nanosol_cli_e2e_compile_failure();
   test_nano_node_rejects_oversized_code_state();
   test_nano_node_rejects_runtime_account_invalid_flags();
+  test_state_clone_overflow_guards();
 
   puts("All tests passed.");
   return 0;

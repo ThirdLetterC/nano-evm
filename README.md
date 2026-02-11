@@ -101,6 +101,11 @@ zig build test-debug
 
 Note: LeakSanitizer can fail to run in ptrace-restricted environments.
 
+## Security
+
+Security assumptions, trust boundaries, and hardening controls are documented in
+`SECURITY.md`.
+
 ## CLI Usage
 
 ```bash

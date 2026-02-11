@@ -447,6 +447,9 @@ EVM_Status storage_index_insert(EVM_State *vm, size_t index) {
 }
 
 EVM_Status storage_index_rebuild(EVM_State *vm) {
+  if (vm->storage_count > 0U && vm->storage == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
   EVM_Status status =
       index_table_resize(&vm->storage_index_table,
                          &vm->storage_index_table_capacity, vm->storage_count);
@@ -467,6 +470,9 @@ EVM_Status storage_index_rebuild(EVM_State *vm) {
 
 bool storage_find(const EVM_State *vm, const uint256_t *key,
                   size_t *index_out) {
+  if (vm->storage_count > 0U && vm->storage == nullptr) {
+    return false;
+  }
   if (storage_index_lookup(vm, key, index_out)) {
     return true;
   }

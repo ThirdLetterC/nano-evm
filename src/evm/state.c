@@ -4,6 +4,24 @@
 #include "evm/state_internal.h"
 #include "keccak.h"
 
+static EVM_Status checked_array_bytes(size_t count, size_t element_size,
+                                      size_t *out_bytes) {
+  if (out_bytes == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
+  if (element_size == 0U) {
+    return EVM_ERR_INTERNAL;
+  }
+  if (count == 0U) {
+    *out_bytes = 0U;
+    return EVM_OK;
+  }
+  if (mul_size_overflow(count, element_size, out_bytes)) {
+    return EVM_ERR_RUNTIME;
+  }
+  return EVM_OK;
+}
+
 uint256_t storage_get(const EVM_State *vm, const uint256_t *key) {
   size_t index = 0;
   if (storage_find(vm, key, &index)) {
@@ -82,6 +100,9 @@ void storage_rollback(EVM_State *vm) {
 
 static bool warm_slot_find(const EVM_State *vm, const uint256_t *address,
                            const uint256_t *key) {
+  if (vm->warm_slots_count > 0U && vm->warm_slots == nullptr) {
+    return false;
+  }
   if (vm->warm_slots_index_table != nullptr &&
       vm->warm_slots_index_table_capacity != 0U) {
     size_t mask = vm->warm_slots_index_table_capacity - 1U;
@@ -144,6 +165,9 @@ static EVM_Status warm_slots_index_insert(EVM_State *vm, size_t index) {
 }
 
 static EVM_Status warm_slots_index_rebuild(EVM_State *vm) {
+  if (vm->warm_slots_count > 0U && vm->warm_slots == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
   EVM_Status status = index_table_resize(&vm->warm_slots_index_table,
                                          &vm->warm_slots_index_table_capacity,
                                          vm->warm_slots_count);
@@ -208,13 +232,19 @@ EVM_Status warm_slots_clone(EVM_State *dst, const EVM_State *src) {
     return EVM_ERR_INTERNAL;
   }
 
-  EVM_AccessEntry *entries =
-      calloc(src->warm_slots_count, sizeof(EVM_AccessEntry));
+  size_t entries_bytes = 0U;
+  EVM_Status status = checked_array_bytes(src->warm_slots_count,
+                                          sizeof(EVM_AccessEntry),
+                                          &entries_bytes);
+  if (status != EVM_OK) {
+    return status;
+  }
+
+  EVM_AccessEntry *entries = calloc(entries_bytes, sizeof(uint8_t));
   if (entries == nullptr) {
     return EVM_ERR_OOM;
   }
-  memcpy(entries, src->warm_slots,
-         src->warm_slots_count * sizeof(EVM_AccessEntry));
+  memcpy(entries, src->warm_slots, entries_bytes);
 
   dst->warm_slots = entries;
   dst->warm_slots_count = src->warm_slots_count;
@@ -240,6 +270,9 @@ void warm_slots_commit_from_child(EVM_State *parent, EVM_State *child) {
 }
 
 static bool warm_account_find(const EVM_State *vm, const uint256_t *address) {
+  if (vm->warm_accounts_count > 0U && vm->warm_accounts == nullptr) {
+    return false;
+  }
   if (vm->warm_accounts_index_table != nullptr &&
       vm->warm_accounts_index_table_capacity != 0U) {
     size_t mask = vm->warm_accounts_index_table_capacity - 1U;
@@ -298,6 +331,9 @@ static EVM_Status warm_accounts_index_insert(EVM_State *vm, size_t index) {
 }
 
 static EVM_Status warm_accounts_index_rebuild(EVM_State *vm) {
+  if (vm->warm_accounts_count > 0U && vm->warm_accounts == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
   EVM_Status status = index_table_resize(
       &vm->warm_accounts_index_table, &vm->warm_accounts_index_table_capacity,
       vm->warm_accounts_count);
@@ -361,12 +397,18 @@ EVM_Status warm_accounts_clone(EVM_State *dst, const EVM_State *src) {
     return EVM_ERR_INTERNAL;
   }
 
-  uint256_t *accounts = calloc(src->warm_accounts_count, sizeof(uint256_t));
+  size_t accounts_bytes = 0U;
+  EVM_Status status = checked_array_bytes(src->warm_accounts_count,
+                                          sizeof(uint256_t), &accounts_bytes);
+  if (status != EVM_OK) {
+    return status;
+  }
+
+  uint256_t *accounts = calloc(accounts_bytes, sizeof(uint8_t));
   if (accounts == nullptr) {
     return EVM_ERR_OOM;
   }
-  memcpy(accounts, src->warm_accounts,
-         src->warm_accounts_count * sizeof(uint256_t));
+  memcpy(accounts, src->warm_accounts, accounts_bytes);
 
   dst->warm_accounts = accounts;
   dst->warm_accounts_count = src->warm_accounts_count;
@@ -435,6 +477,9 @@ EVM_Status transient_storage_set(EVM_State *vm, const uint256_t *key,
 
 static const EVM_ExternalAccount *
 find_external_account(const EVM_State *vm, const uint256_t *address) {
+  if (vm->external_accounts_count > 0U && vm->external_accounts == nullptr) {
+    return nullptr;
+  }
   for (size_t i = 0; i < vm->external_accounts_count; ++i) {
     if (uint256_cmp(&vm->external_accounts[i].address, address) == 0) {
       return &vm->external_accounts[i];
@@ -451,6 +496,9 @@ static bool uint256_add_overflow(const uint256_t *a, const uint256_t *b,
 
 static bool runtime_account_find(const EVM_State *vm, const uint256_t *address,
                                  size_t *index_out) {
+  if (vm->runtime_accounts_count > 0U && vm->runtime_accounts == nullptr) {
+    return false;
+  }
   for (size_t i = 0; i < vm->runtime_accounts_count; ++i) {
     if (uint256_cmp(&vm->runtime_accounts[i].address, address) == 0) {
       *index_out = i;
@@ -513,15 +561,23 @@ runtime_account_set_storage_entries(EVM_RuntimeAccount *account,
                                     const EVM_StorageEntry *storage,
                                     size_t storage_count) {
   EVM_StorageEntry *new_storage = nullptr;
+  size_t storage_bytes = 0U;
   if (storage_count > 0U) {
     if (storage == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    new_storage = calloc(storage_count, sizeof(EVM_StorageEntry));
+    EVM_Status status = checked_array_bytes(storage_count,
+                                            sizeof(EVM_StorageEntry),
+                                            &storage_bytes);
+    if (status != EVM_OK) {
+      return status;
+    }
+
+    new_storage = calloc(storage_bytes, sizeof(uint8_t));
     if (new_storage == nullptr) {
       return EVM_ERR_OOM;
     }
-    memcpy(new_storage, storage, storage_count * sizeof(EVM_StorageEntry));
+    memcpy(new_storage, storage, storage_bytes);
   }
 
   runtime_account_clear_storage(account);
@@ -536,15 +592,23 @@ runtime_account_set_transient_entries(EVM_RuntimeAccount *account,
                                       const EVM_TransientEntry *entries,
                                       size_t entries_count) {
   EVM_TransientEntry *new_entries = nullptr;
+  size_t entries_bytes = 0U;
   if (entries_count > 0U) {
     if (entries == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    new_entries = calloc(entries_count, sizeof(EVM_TransientEntry));
+    EVM_Status status = checked_array_bytes(entries_count,
+                                            sizeof(EVM_TransientEntry),
+                                            &entries_bytes);
+    if (status != EVM_OK) {
+      return status;
+    }
+
+    new_entries = calloc(entries_bytes, sizeof(uint8_t));
     if (new_entries == nullptr) {
       return EVM_ERR_OOM;
     }
-    memcpy(new_entries, entries, entries_count * sizeof(EVM_TransientEntry));
+    memcpy(new_entries, entries, entries_bytes);
   }
 
   runtime_account_clear_transient_storage(account);
@@ -556,6 +620,9 @@ runtime_account_set_transient_entries(EVM_RuntimeAccount *account,
 
 EVM_Status runtime_account_ensure(EVM_State *vm, const uint256_t *address,
                                   EVM_RuntimeAccount **out_account) {
+  if (vm->runtime_accounts_count > 0U && vm->runtime_accounts == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
   size_t index = 0;
   if (runtime_account_find(vm, address, &index)) {
     *out_account = &vm->runtime_accounts[index];
@@ -1019,9 +1086,19 @@ EVM_Status runtime_accounts_clone(EVM_State *dst, const EVM_State *src) {
   if (src->runtime_accounts_count == 0U) {
     return EVM_OK;
   }
+  if (src->runtime_accounts == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
 
-  EVM_RuntimeAccount *accounts =
-      calloc(src->runtime_accounts_count, sizeof(EVM_RuntimeAccount));
+  size_t accounts_bytes = 0U;
+  EVM_Status size_status = checked_array_bytes(src->runtime_accounts_count,
+                                               sizeof(EVM_RuntimeAccount),
+                                               &accounts_bytes);
+  if (size_status != EVM_OK) {
+    return size_status;
+  }
+
+  EVM_RuntimeAccount *accounts = calloc(accounts_bytes, sizeof(uint8_t));
   if (accounts == nullptr) {
     return EVM_ERR_OOM;
   }
@@ -1059,15 +1136,23 @@ static EVM_Status frame_set_storage_entries(EVM_State *vm,
                                             const EVM_StorageEntry *storage,
                                             size_t storage_count) {
   EVM_StorageEntry *new_storage = nullptr;
+  size_t storage_bytes = 0U;
   if (storage_count > 0U) {
     if (storage == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    new_storage = calloc(storage_count, sizeof(EVM_StorageEntry));
+    EVM_Status status = checked_array_bytes(storage_count,
+                                            sizeof(EVM_StorageEntry),
+                                            &storage_bytes);
+    if (status != EVM_OK) {
+      return status;
+    }
+
+    new_storage = calloc(storage_bytes, sizeof(uint8_t));
     if (new_storage == nullptr) {
       return EVM_ERR_OOM;
     }
-    memcpy(new_storage, storage, storage_count * sizeof(EVM_StorageEntry));
+    memcpy(new_storage, storage, storage_bytes);
   }
 
   free(vm->storage);
@@ -1081,15 +1166,23 @@ static EVM_Status frame_set_transient_entries(EVM_State *vm,
                                               const EVM_TransientEntry *entries,
                                               size_t entries_count) {
   EVM_TransientEntry *new_entries = nullptr;
+  size_t entries_bytes = 0U;
   if (entries_count > 0U) {
     if (entries == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    new_entries = calloc(entries_count, sizeof(EVM_TransientEntry));
+    EVM_Status status = checked_array_bytes(entries_count,
+                                            sizeof(EVM_TransientEntry),
+                                            &entries_bytes);
+    if (status != EVM_OK) {
+      return status;
+    }
+
+    new_entries = calloc(entries_bytes, sizeof(uint8_t));
     if (new_entries == nullptr) {
       return EVM_ERR_OOM;
     }
-    memcpy(new_entries, entries, entries_count * sizeof(EVM_TransientEntry));
+    memcpy(new_entries, entries, entries_bytes);
   }
 
   free(vm->transient_storage);
@@ -1183,6 +1276,9 @@ EVM_Status merge_child_logs(EVM_State *vm, const EVM_State *child) {
   if (child->logs_count == 0U) {
     return EVM_OK;
   }
+  if (child->logs == nullptr) {
+    return EVM_ERR_INTERNAL;
+  }
 
   size_t original_count = vm->logs_count;
   EVM_Status fail_status = EVM_ERR_OOM;
@@ -1237,6 +1333,9 @@ fail:
 }
 
 uint256_t block_hash_lookup(const EVM_State *vm, const uint256_t *number) {
+  if (vm->block_hashes_count > 0U && vm->block_hashes == nullptr) {
+    return uint256_zero();
+  }
   for (size_t i = 0; i < vm->block_hashes_count; ++i) {
     if (uint256_cmp(&vm->block_hashes[i].number, number) == 0) {
       return vm->block_hashes[i].hash;

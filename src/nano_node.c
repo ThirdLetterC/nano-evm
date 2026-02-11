@@ -9,6 +9,17 @@
 #include <string.h>
 #include <unistd.h>
 
+#if defined(__has_include)
+#if __has_include(<stdckdint.h>)
+#include <stdckdint.h>
+#define NANO_NODE_HAVE_STDCKDINT 1
+#endif
+#endif
+
+#ifndef NANO_NODE_HAVE_STDCKDINT
+#define NANO_NODE_HAVE_STDCKDINT 0
+#endif
+
 #include "evm.h"
 #include "nano_utils.h"
 #include "nanosol.h"
@@ -44,6 +55,36 @@ static constexpr size_t NODE_STATE_MAX_RUNTIME_ACCOUNTS = 200'000U;
 static constexpr uint8_t NODE_RUNTIME_ACCOUNT_FLAG_DESTROYED = 0x01U;
 static constexpr uint8_t NODE_RUNTIME_ACCOUNT_FLAGS_ALLOWED =
     NODE_RUNTIME_ACCOUNT_FLAG_DESTROYED;
+
+static bool checked_add_size(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return false;
+  }
+#if NANO_NODE_HAVE_STDCKDINT
+  return !ckd_add(out, a, b);
+#else
+  if (a > (SIZE_MAX - b)) {
+    return false;
+  }
+  *out = a + b;
+  return true;
+#endif
+}
+
+static bool checked_mul_size(size_t a, size_t b, size_t *out) {
+  if (out == nullptr) {
+    return false;
+  }
+#if NANO_NODE_HAVE_STDCKDINT
+  return !ckd_mul(out, a, b);
+#else
+  if (a != 0U && b > (SIZE_MAX / a)) {
+    return false;
+  }
+  *out = a * b;
+  return true;
+#endif
+}
 
 static void print_usage(const char *prog) {
   fprintf(
@@ -468,12 +509,13 @@ static bool node_state_save(const char *path, const NodeState *state) {
   static constexpr char temp_suffix[] = ".tmp";
 
   size_t path_len = strlen(path);
-  if (path_len > SIZE_MAX - sizeof(temp_suffix)) {
+  size_t temp_path_len = 0U;
+  if (!checked_add_size(path_len, sizeof(temp_suffix), &temp_path_len)) {
     fprintf(stderr, "State file path too long: %s\n", path);
     return false;
   }
 
-  char *temp_path = calloc(path_len + sizeof(temp_suffix), sizeof(char));
+  char *temp_path = calloc(temp_path_len, sizeof(char));
   if (temp_path == nullptr) {
     fprintf(stderr, "Out of memory while creating temp state path\n");
     return false;
@@ -814,11 +856,12 @@ static bool parse_word(const char *text, uint256_t *out_word) {
     char *normalized = nullptr;
     const char *parse_text = text;
     if ((digits_len % 2U) != 0U) {
-      if (digits_len > SIZE_MAX - 4U) {
+      size_t normalized_size = 0U;
+      if (!checked_add_size(digits_len, 4U, &normalized_size)) {
         fprintf(stderr, "Hex word too large: %s\n", text);
         return false;
       }
-      normalized = calloc(digits_len + 4U, sizeof(char));
+      normalized = calloc(normalized_size, sizeof(char));
       if (normalized == nullptr) {
         fprintf(stderr, "Out of memory while normalizing hex word\n");
         return false;
@@ -936,17 +979,22 @@ static bool command_words_ensure_size(uint256_t **words, size_t *word_count,
   if (target_count <= *word_count) {
     return true;
   }
-  if (target_count > (SIZE_MAX / sizeof(**words))) {
+  size_t resized_bytes = 0U;
+  if (!checked_mul_size(target_count, sizeof(**words), &resized_bytes)) {
+    return false;
+  }
+  size_t added_words = target_count - *word_count;
+  size_t added_bytes = 0U;
+  if (!checked_mul_size(added_words, sizeof(**words), &added_bytes)) {
     return false;
   }
 
-  uint256_t *resized = realloc(*words, target_count * sizeof(*resized));
+  uint256_t *resized = realloc(*words, resized_bytes);
   if (resized == nullptr) {
     return false;
   }
 
-  memset(resized + *word_count, 0,
-         (target_count - *word_count) * sizeof(*resized));
+  memset(resized + *word_count, 0, added_bytes);
   *words = resized;
   *word_count = target_count;
   return true;

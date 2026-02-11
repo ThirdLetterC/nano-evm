@@ -10,6 +10,7 @@
 
 #include "bn254_pairing.h"
 #include "keccak.h"
+#include "nano_utils.h"
 
 static EVM_Status precompile_fail(EVM_State *vm, bool *out_success) {
   vm->gas_remaining = 0;
@@ -505,37 +506,44 @@ static bool precompile_ecrecover_address(const uint8_t input_words[128],
     return false;
   }
 
-  uint8_t compact_signature[64];
+  bool recovered = false;
+  uint8_t compact_signature[64] = {0};
+  uint8_t serialized_pubkey[65] = {0};
+  secp256k1_ecdsa_recoverable_signature signature = {0};
+  secp256k1_pubkey pubkey = {0};
+
   memcpy(compact_signature, input_words + 64U, sizeof(compact_signature));
 
-  secp256k1_ecdsa_recoverable_signature signature;
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
           context, &signature, compact_signature, (int)recovery_id)) {
-    secp256k1_context_destroy(context);
-    return false;
+    goto cleanup;
   }
 
-  secp256k1_pubkey pubkey;
   if (!secp256k1_ecdsa_recover(context, &pubkey, &signature, input_words)) {
-    secp256k1_context_destroy(context);
-    return false;
+    goto cleanup;
   }
 
-  uint8_t serialized_pubkey[65];
   size_t serialized_size = sizeof(serialized_pubkey);
   bool serialized = secp256k1_ec_pubkey_serialize(
                         context, serialized_pubkey, &serialized_size, &pubkey,
                         SECP256K1_EC_UNCOMPRESSED) != 0 &&
                     serialized_size == sizeof(serialized_pubkey);
-  secp256k1_context_destroy(context);
   if (!serialized) {
-    return false;
+    goto cleanup;
   }
 
   const union ethash_hash256 hash =
       ethash_keccak256(serialized_pubkey + 1U, 64U);
   memcpy(out_address, hash.bytes + 12U, 20U);
-  return true;
+  recovered = true;
+
+cleanup:
+  nano_utils_secure_zero(compact_signature, sizeof(compact_signature));
+  nano_utils_secure_zero(serialized_pubkey, sizeof(serialized_pubkey));
+  nano_utils_secure_zero(&signature, sizeof(signature));
+  nano_utils_secure_zero(&pubkey, sizeof(pubkey));
+  secp256k1_context_destroy(context);
+  return recovered;
 }
 
 static uint64_t precompile_load_le_u64(const uint8_t *in) {
@@ -803,11 +811,14 @@ static EVM_Status execute_precompile(EVM_State *vm, uint8_t id,
                            sizeof(padded_input));
 
     uint8_t out[32] = {0};
-    uint8_t recovered_address[20];
+    uint8_t recovered_address[20] = {0};
     if (precompile_ecrecover_address(padded_input, recovered_address)) {
       memcpy(out + 12U, recovered_address, sizeof(recovered_address));
     }
     status = set_return_data_bytes(vm, out, sizeof(out));
+    nano_utils_secure_zero(recovered_address, sizeof(recovered_address));
+    nano_utils_secure_zero(out, sizeof(out));
+    nano_utils_secure_zero(padded_input, sizeof(padded_input));
   } else if (id == 2U) {
     uint8_t digest[32];
     sha256_hash(input, input_size, digest);
