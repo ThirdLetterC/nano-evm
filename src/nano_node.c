@@ -723,8 +723,9 @@ static bool node_state_load(const char *path, NodeState *out_state) {
     return false;
   }
   if (transient_count > NODE_STATE_MAX_TRANSIENT_ENTRIES) {
-    fprintf(stderr, "Transient storage entry count exceeds limit (%zu > %zu): "
-                    "%s\n",
+    fprintf(stderr,
+            "Transient storage entry count exceeds limit (%zu > %zu): "
+            "%s\n",
             transient_count, NODE_STATE_MAX_TRANSIENT_ENTRIES, path);
     fclose(file);
     return false;

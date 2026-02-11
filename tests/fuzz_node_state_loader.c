@@ -15,8 +15,7 @@
 #include "../src/nano_node.c"
 #undef main
 
-static constexpr size_t NODE_STATE_FUZZ_MAX_INPUT_BYTES =
-    1U * 1'024U * 1'024U;
+static constexpr size_t NODE_STATE_FUZZ_MAX_INPUT_BYTES = 1U * 1'024U * 1'024U;
 
 static bool write_temp_state_file(const uint8_t *data, size_t size,
                                   char out_path[static 64]) {
@@ -81,8 +80,8 @@ int main(int argc, char **argv) {
   for (int i = 1; i < argc; ++i) {
     uint8_t *data = nullptr;
     size_t size = 0U;
-    if (!fuzz_read_file_bounded(argv[i], NODE_STATE_FUZZ_MAX_INPUT_BYTES,
-                                &data, &size)) {
+    if (!fuzz_read_file_bounded(argv[i], NODE_STATE_FUZZ_MAX_INPUT_BYTES, &data,
+                                &size)) {
       continue;
     }
     (void)LLVMFuzzerTestOneInput(data, size);

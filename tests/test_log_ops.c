@@ -1,5 +1,5 @@
-#include "test_helpers.h"
 #include "evm/gas_and_storage_internal.h"
+#include "test_helpers.h"
 
 void test_log_ops() {
   EVM_State vm;

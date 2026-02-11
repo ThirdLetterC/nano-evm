@@ -84,8 +84,8 @@ EVM_Status evm_load_hex(const char *hex, uint8_t **out_code, size_t *out_size) {
       free(code);
       return EVM_ERR_HEX_PARSE;
     }
-    code[out_index++] = (uint8_t)(((unsigned int)hi_nibble << 4U) |
-                                  (unsigned int)value);
+    code[out_index++] =
+        (uint8_t)(((unsigned int)hi_nibble << 4U) | (unsigned int)value);
     hi_nibble = -1;
   }
 

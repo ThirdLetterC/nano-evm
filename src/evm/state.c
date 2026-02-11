@@ -233,9 +233,8 @@ EVM_Status warm_slots_clone(EVM_State *dst, const EVM_State *src) {
   }
 
   size_t entries_bytes = 0U;
-  EVM_Status status = checked_array_bytes(src->warm_slots_count,
-                                          sizeof(EVM_AccessEntry),
-                                          &entries_bytes);
+  EVM_Status status = checked_array_bytes(
+      src->warm_slots_count, sizeof(EVM_AccessEntry), &entries_bytes);
   if (status != EVM_OK) {
     return status;
   }
@@ -566,9 +565,8 @@ runtime_account_set_storage_entries(EVM_RuntimeAccount *account,
     if (storage == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    EVM_Status status = checked_array_bytes(storage_count,
-                                            sizeof(EVM_StorageEntry),
-                                            &storage_bytes);
+    EVM_Status status = checked_array_bytes(
+        storage_count, sizeof(EVM_StorageEntry), &storage_bytes);
     if (status != EVM_OK) {
       return status;
     }
@@ -597,9 +595,8 @@ runtime_account_set_transient_entries(EVM_RuntimeAccount *account,
     if (entries == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    EVM_Status status = checked_array_bytes(entries_count,
-                                            sizeof(EVM_TransientEntry),
-                                            &entries_bytes);
+    EVM_Status status = checked_array_bytes(
+        entries_count, sizeof(EVM_TransientEntry), &entries_bytes);
     if (status != EVM_OK) {
       return status;
     }
@@ -1091,9 +1088,8 @@ EVM_Status runtime_accounts_clone(EVM_State *dst, const EVM_State *src) {
   }
 
   size_t accounts_bytes = 0U;
-  EVM_Status size_status = checked_array_bytes(src->runtime_accounts_count,
-                                               sizeof(EVM_RuntimeAccount),
-                                               &accounts_bytes);
+  EVM_Status size_status = checked_array_bytes(
+      src->runtime_accounts_count, sizeof(EVM_RuntimeAccount), &accounts_bytes);
   if (size_status != EVM_OK) {
     return size_status;
   }
@@ -1141,9 +1137,8 @@ static EVM_Status frame_set_storage_entries(EVM_State *vm,
     if (storage == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    EVM_Status status = checked_array_bytes(storage_count,
-                                            sizeof(EVM_StorageEntry),
-                                            &storage_bytes);
+    EVM_Status status = checked_array_bytes(
+        storage_count, sizeof(EVM_StorageEntry), &storage_bytes);
     if (status != EVM_OK) {
       return status;
     }
@@ -1171,9 +1166,8 @@ static EVM_Status frame_set_transient_entries(EVM_State *vm,
     if (entries == nullptr) {
       return EVM_ERR_INTERNAL;
     }
-    EVM_Status status = checked_array_bytes(entries_count,
-                                            sizeof(EVM_TransientEntry),
-                                            &entries_bytes);
+    EVM_Status status = checked_array_bytes(
+        entries_count, sizeof(EVM_TransientEntry), &entries_bytes);
     if (status != EVM_OK) {
       return status;
     }

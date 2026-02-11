@@ -45,9 +45,10 @@ static node_cli_result_t run_nano_node_inspect(const char *state_path,
   };
 
   char command[2'048];
-  int written = snprintf(command, sizeof(command),
-                         "\"%s\" inspect --state \"%s\" > \"%s\" 2> \"%s\"",
-                         nano_node_path(), state_path, stdout_path, stderr_path);
+  int written =
+      snprintf(command, sizeof(command),
+               "\"%s\" inspect --state \"%s\" > \"%s\" 2> \"%s\"",
+               nano_node_path(), state_path, stdout_path, stderr_path);
   assert(written > 0);
   assert((size_t)written < sizeof(command));
 
