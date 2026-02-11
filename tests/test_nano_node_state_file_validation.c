@@ -322,9 +322,8 @@ void test_nano_node_call_rejects_oversized_command_word_hex() {
   assert(fclose(file) == 0);
 
   char *oversized_cmd_word = make_hex_payload(33U);
-  int args_len =
-      snprintf(nullptr, 0, "call --state \"%s\" --cmd \"%s\"", state_path,
-               oversized_cmd_word);
+  int args_len = snprintf(nullptr, 0, "call --state \"%s\" --cmd \"%s\"",
+                          state_path, oversized_cmd_word);
   assert(args_len > 0);
 
   size_t args_size = 0U;
