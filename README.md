@@ -101,6 +101,21 @@ zig build test-debug
 
 Note: LeakSanitizer can fail to run in ptrace-restricted environments.
 
+Fuzz harness binaries:
+
+```bash
+zig build fuzz
+zig build fuzz-debug
+```
+
+Run harnesses on corpus files:
+
+```bash
+zig build fuzz-hex -- tests/fuzz_corpus/hex/seed_valid.hex tests/fuzz_corpus/hex/seed_invalid.hex
+zig build fuzz-nanosol -- tests/fuzz_corpus/nanosol/seed_valid.nsol tests/fuzz_corpus/nanosol/seed_invalid.nsol
+zig build fuzz-node-state -- tests/fuzz_corpus/node_state/seed_empty.bin tests/fuzz_corpus/node_state/seed_magic_prefix.bin
+```
+
 ## Security
 
 Security assumptions, trust boundaries, and hardening controls are documented in

@@ -28,6 +28,21 @@ debug:
 test-debug:
     zig build test-debug
 
+fuzz:
+    zig build fuzz
+
+fuzz-debug:
+    zig build fuzz-debug
+
+fuzz-hex *inputs:
+    zig build fuzz-hex -- {{inputs}}
+
+fuzz-nanosol *inputs:
+    zig build fuzz-nanosol -- {{inputs}}
+
+fuzz-node-state *inputs:
+    zig build fuzz-node-state -- {{inputs}}
+
 run bytecode gas='100000':
     zig build
     zig-out/bin/nano-evm {{bytecode}} {{gas}}

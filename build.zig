@@ -126,6 +126,35 @@ const example_sources = &.{
     "src/nanosol.c",
 };
 
+const fuzz_hex_sources = &.{
+    "tests/fuzz_hex_parser.c",
+    "src/evm.c",
+    "src/evm/bn254_pairing.c",
+    "src/stack.c",
+    "src/uint256.c",
+    "src/keccak.c",
+};
+
+const fuzz_nanosol_sources = &.{
+    "tests/fuzz_nanosol_parser.c",
+    "src/evm.c",
+    "src/evm/bn254_pairing.c",
+    "src/stack.c",
+    "src/uint256.c",
+    "src/keccak.c",
+    "src/nanosol.c",
+};
+
+const fuzz_node_state_sources = &.{
+    "tests/fuzz_node_state_loader.c",
+    "src/evm.c",
+    "src/evm/bn254_pairing.c",
+    "src/stack.c",
+    "src/uint256.c",
+    "src/keccak.c",
+    "src/nanosol.c",
+};
+
 fn add_c_executable(
     b: *std.Build,
     name: []const u8,
@@ -251,6 +280,74 @@ pub fn build(b: *std.Build) void {
     const examples_step = b.step("examples", "Build and run contract examples");
     examples_step.dependOn(&run_contract_examples.step);
 
+    const fuzz_hex = add_c_executable(
+        b,
+        "fuzz_hex_parser",
+        target,
+        .Debug,
+        null,
+        fuzz_hex_sources,
+        release_cflags,
+    );
+    const install_fuzz_hex = b.addInstallArtifact(fuzz_hex, .{});
+
+    const fuzz_nanosol = add_c_executable(
+        b,
+        "fuzz_nanosol_parser",
+        target,
+        .Debug,
+        null,
+        fuzz_nanosol_sources,
+        release_cflags,
+    );
+    const install_fuzz_nanosol = b.addInstallArtifact(fuzz_nanosol, .{});
+
+    const fuzz_node_state = add_c_executable(
+        b,
+        "fuzz_node_state_loader",
+        target,
+        .Debug,
+        null,
+        fuzz_node_state_sources,
+        release_cflags,
+    );
+    const install_fuzz_node_state = b.addInstallArtifact(fuzz_node_state, .{});
+
+    const fuzz_build_step = b.step("fuzz", "Build fuzz harness binaries");
+    fuzz_build_step.dependOn(&install_fuzz_hex.step);
+    fuzz_build_step.dependOn(&install_fuzz_nanosol.step);
+    fuzz_build_step.dependOn(&install_fuzz_node_state.step);
+
+    const run_fuzz_hex = b.addRunArtifact(fuzz_hex);
+    if (b.args) |args| {
+        run_fuzz_hex.addArgs(args);
+    }
+    const fuzz_hex_step = b.step(
+        "fuzz-hex",
+        "Run hex parser fuzz harness over input files",
+    );
+    fuzz_hex_step.dependOn(&run_fuzz_hex.step);
+
+    const run_fuzz_nanosol = b.addRunArtifact(fuzz_nanosol);
+    if (b.args) |args| {
+        run_fuzz_nanosol.addArgs(args);
+    }
+    const fuzz_nanosol_step = b.step(
+        "fuzz-nanosol",
+        "Run NanoSol parser/compiler fuzz harness over input files",
+    );
+    fuzz_nanosol_step.dependOn(&run_fuzz_nanosol.step);
+
+    const run_fuzz_node_state = b.addRunArtifact(fuzz_node_state);
+    if (b.args) |args| {
+        run_fuzz_node_state.addArgs(args);
+    }
+    const fuzz_node_state_step = b.step(
+        "fuzz-node-state",
+        "Run node state loader fuzz harness over input files",
+    );
+    fuzz_node_state_step.dependOn(&run_fuzz_node_state.step);
+
     const nano_evm_release = add_c_executable(
         b,
         "nano-evm-release",
@@ -292,4 +389,75 @@ pub fn build(b: *std.Build) void {
     }
     const test_debug_step = b.step("test-debug", "Build and run debug test suite");
     test_debug_step.dependOn(&run_test_suite_debug.step);
+
+    const fuzz_hex_debug = add_c_executable(
+        b,
+        "fuzz_hex_parser-debug",
+        target,
+        .Debug,
+        .full,
+        fuzz_hex_sources,
+        debug_cflags,
+    );
+    const install_fuzz_hex_debug = b.addInstallArtifact(fuzz_hex_debug, .{});
+
+    const fuzz_nanosol_debug = add_c_executable(
+        b,
+        "fuzz_nanosol_parser-debug",
+        target,
+        .Debug,
+        .full,
+        fuzz_nanosol_sources,
+        debug_cflags,
+    );
+    const install_fuzz_nanosol_debug = b.addInstallArtifact(fuzz_nanosol_debug, .{});
+
+    const fuzz_node_state_debug = add_c_executable(
+        b,
+        "fuzz_node_state_loader-debug",
+        target,
+        .Debug,
+        .full,
+        fuzz_node_state_sources,
+        debug_cflags,
+    );
+    const install_fuzz_node_state_debug = b.addInstallArtifact(fuzz_node_state_debug, .{});
+
+    const fuzz_debug_step = b.step(
+        "fuzz-debug",
+        "Build sanitizer-enabled fuzz harness binaries",
+    );
+    fuzz_debug_step.dependOn(&install_fuzz_hex_debug.step);
+    fuzz_debug_step.dependOn(&install_fuzz_nanosol_debug.step);
+    fuzz_debug_step.dependOn(&install_fuzz_node_state_debug.step);
+
+    const run_fuzz_hex_debug = b.addRunArtifact(fuzz_hex_debug);
+    if (b.args) |args| {
+        run_fuzz_hex_debug.addArgs(args);
+    }
+    const fuzz_hex_debug_step = b.step(
+        "fuzz-hex-debug",
+        "Run sanitizer hex parser fuzz harness over input files",
+    );
+    fuzz_hex_debug_step.dependOn(&run_fuzz_hex_debug.step);
+
+    const run_fuzz_nanosol_debug = b.addRunArtifact(fuzz_nanosol_debug);
+    if (b.args) |args| {
+        run_fuzz_nanosol_debug.addArgs(args);
+    }
+    const fuzz_nanosol_debug_step = b.step(
+        "fuzz-nanosol-debug",
+        "Run sanitizer NanoSol parser/compiler fuzz harness over input files",
+    );
+    fuzz_nanosol_debug_step.dependOn(&run_fuzz_nanosol_debug.step);
+
+    const run_fuzz_node_state_debug = b.addRunArtifact(fuzz_node_state_debug);
+    if (b.args) |args| {
+        run_fuzz_node_state_debug.addArgs(args);
+    }
+    const fuzz_node_state_debug_step = b.step(
+        "fuzz-node-state-debug",
+        "Run sanitizer node state loader fuzz harness over input files",
+    );
+    fuzz_node_state_debug_step.dependOn(&run_fuzz_node_state_debug.step);
 }

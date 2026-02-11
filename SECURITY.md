@@ -69,14 +69,29 @@ This project treats all externally supplied data as untrusted:
 ## Security Testing
 
 - regression tests cover malformed state files and arithmetic overflow edges
-- run baseline checks:
+- baseline checks:
 
 ```bash
 zig build test
 zig build test-debug
 ```
 
-- for parser and state machine hardening, fuzzing is recommended for:
-  - hex parser (`evm_load_hex`)
-  - NanoSol lexer/parser
-  - node state file loader
+- fuzz harness binaries (normal and sanitizer):
+
+```bash
+zig build fuzz
+zig build fuzz-debug
+```
+
+- parser/state-machine fuzz entrypoints:
+- `fuzz_hex_parser` targets `evm_load_hex` and short VM execution
+- `fuzz_nanosol_parser` targets NanoSol lex/parse/compile paths
+- `fuzz_node_state_loader` targets node state file decoding and validation
+
+- sample corpus runs:
+
+```bash
+zig build fuzz-hex -- tests/fuzz_corpus/hex/seed_valid.hex tests/fuzz_corpus/hex/seed_invalid.hex
+zig build fuzz-nanosol -- tests/fuzz_corpus/nanosol/seed_valid.nsol tests/fuzz_corpus/nanosol/seed_invalid.nsol
+zig build fuzz-node-state -- tests/fuzz_corpus/node_state/seed_empty.bin tests/fuzz_corpus/node_state/seed_magic_prefix.bin
+```
