@@ -1,5 +1,4 @@
-#ifndef NANO_UTILS_H
-#define NANO_UTILS_H
+#pragma once
 
 #include <ctype.h>
 #include <errno.h>
@@ -270,5 +269,3 @@ nano_utils_print_bytes_hex(const uint8_t *bytes, size_t size) {
     bytes[i] = 0U;
   }
 }
-
-#endif

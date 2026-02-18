@@ -1,5 +1,4 @@
-#ifndef STACK_H
-#define STACK_H
+#pragma once
 
 #include <stddef.h>
 
@@ -19,5 +18,3 @@ void stack_init(EVM_Stack *stack);
 [[nodiscard]] StackResult stack_pop(EVM_Stack *stack, uint256_t *out);
 [[nodiscard]] StackResult stack_peek(const EVM_Stack *stack, uint256_t *out);
 [[nodiscard]] size_t stack_depth(const EVM_Stack *stack);
-
-#endif

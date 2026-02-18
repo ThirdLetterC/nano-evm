@@ -1,5 +1,4 @@
-#ifndef OPCODES_H
-#define OPCODES_H
+#pragma once
 
 #include <stdint.h>
 
@@ -154,5 +153,3 @@ enum {
   OPCODE_INVALID = 0xfe,
   OPCODE_SELFDESTRUCT = 0xff
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef UINT256_H
-#define UINT256_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -53,5 +52,3 @@ typedef struct {
 
 void uint256_from_be_bytes(uint256_t *out, const uint8_t bytes[32]);
 void uint256_to_be_bytes(const uint256_t *value, uint8_t out[32]);
-
-#endif
