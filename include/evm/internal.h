@@ -1,5 +1,4 @@
-#ifndef EVM_INTERNAL_H
-#define EVM_INTERNAL_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -53,5 +52,3 @@ static constexpr uint64_t GAS_PRECOMPILE_BN256MUL = 6'000;
 static constexpr uint64_t GAS_PRECOMPILE_BN256PAIRING_BASE = 45'000;
 static constexpr uint64_t GAS_PRECOMPILE_BN256PAIRING_PER_PAIR = 34'000;
 static constexpr size_t EVM_MAX_CALL_DEPTH = 1'024;
-
-#endif

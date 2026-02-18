@@ -1,5 +1,4 @@
-#ifndef EVM_STATE_INTERNAL_H
-#define EVM_STATE_INTERNAL_H
+#pragma once
 
 #include "evm/common_internal.h"
 
@@ -70,5 +69,3 @@ uint256_t block_hash_lookup(const EVM_State *vm, const uint256_t *number);
 bool uint256_fits_u64(const uint256_t *value);
 EVM_Status ensure_memory_range(EVM_State *vm, size_t offset, size_t size);
 void rollback_logs(EVM_State *vm, size_t logs_start_count);
-
-#endif

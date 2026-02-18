@@ -1,5 +1,4 @@
-#ifndef CONTRACTS_H
-#define CONTRACTS_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -19,5 +18,3 @@ typedef struct {
 [[nodiscard]] EVM_Status contracts_load_code(const EVM_ContractSpec *spec,
                                              uint8_t **out_code,
                                              size_t *out_size);
-
-#endif

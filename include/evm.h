@@ -1,5 +1,4 @@
-#ifndef EVM_H
-#define EVM_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -154,5 +153,3 @@ void evm_destroy(EVM_State *vm);
 [[nodiscard]] EVM_Status evm_memory_ensure(EVM_State *vm, size_t required_size);
 
 [[nodiscard]] const char *evm_status_string(EVM_Status status);
-
-#endif

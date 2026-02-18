@@ -1,5 +1,4 @@
-#ifndef NANOSOL_INTERNAL_H
-#define NANOSOL_INTERNAL_H
+#pragma once
 
 #include "nanosol.h"
 
@@ -142,5 +141,3 @@ static constexpr size_t FUNCTION_RETURN_ADDRESS_SLOT_OFFSET =
 static constexpr size_t FUNCTION_RETURN_VALUE_SLOT_OFFSET =
     FUNCTION_FRAME_SIZE - LOCAL_SLOT_SIZE;
 static constexpr size_t FRAME_POINTER_SLOT_OFFSET = 0x100;
-
-#endif

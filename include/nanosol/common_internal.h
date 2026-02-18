@@ -1,5 +1,4 @@
-#ifndef NANOSOL_COMMON_INTERNAL_H
-#define NANOSOL_COMMON_INTERNAL_H
+#pragma once
 
 #include "nanosol/internal.h"
 #include "opcodes.h"
@@ -68,5 +67,3 @@ bool compiler_emit_user_function_call(NanoSol_Compiler *compiler,
                                       bool discard_result);
 bool compiler_emit_internal_function_return(NanoSol_Compiler *compiler);
 bool compiler_emit_external_word_return(NanoSol_Compiler *compiler);
-
-#endif

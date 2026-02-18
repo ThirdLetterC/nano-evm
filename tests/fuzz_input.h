@@ -1,5 +1,4 @@
-#ifndef FUZZ_INPUT_H
-#define FUZZ_INPUT_H
+#pragma once
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -62,5 +61,3 @@ static bool fuzz_read_file_bounded(const char *path, size_t max_bytes,
   *out_size = size;
   return true;
 }
-
-#endif

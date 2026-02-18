@@ -1,5 +1,4 @@
-#ifndef NANOSOL_H
-#define NANOSOL_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -28,5 +27,3 @@ typedef enum {
 
 [[nodiscard]] const char *nanosol_status_string(NanoSol_Status status);
 void nanosol_free(void *ptr);
-
-#endif

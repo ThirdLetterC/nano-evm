@@ -1,5 +1,4 @@
-#ifndef EVM_COMMON_INTERNAL_H
-#define EVM_COMMON_INTERNAL_H
+#pragma once
 
 #include "evm.h"
 #include "evm/internal.h"
@@ -30,5 +29,3 @@ EVM_Status index_table_resize(size_t **table, size_t *capacity,
 EVM_Status storage_index_insert(EVM_State *vm, size_t index);
 EVM_Status storage_index_rebuild(EVM_State *vm);
 bool storage_find(const EVM_State *vm, const uint256_t *key, size_t *out_index);
-
-#endif

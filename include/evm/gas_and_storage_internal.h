@@ -1,5 +1,4 @@
-#ifndef EVM_GAS_AND_STORAGE_INTERNAL_H
-#define EVM_GAS_AND_STORAGE_INTERNAL_H
+#pragma once
 
 #include "evm/state_internal.h"
 
@@ -33,5 +32,3 @@ EVM_Status sstore_berlin(EVM_State *vm, const uint256_t *key,
 EVM_Status append_log(EVM_State *vm, const uint256_t topics[4],
                       size_t topics_count, const uint8_t *data,
                       size_t data_size);
-
-#endif

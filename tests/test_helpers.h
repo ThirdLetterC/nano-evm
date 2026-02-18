@@ -1,5 +1,4 @@
-#ifndef TEST_HELPERS_H
-#define TEST_HELPERS_H
+#pragma once
 
 #include <assert.h>
 #include <stddef.h>
@@ -33,5 +32,3 @@ uint256_t derive_create_address_expected(uint64_t sender,
                                          const uint256_t *nonce);
 void assert_gas_used_ok(const char *hex, uint64_t gas_limit,
                         uint64_t expected_used);
-
-#endif

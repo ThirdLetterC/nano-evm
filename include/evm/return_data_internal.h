@@ -1,5 +1,4 @@
-#ifndef EVM_RETURN_DATA_INTERNAL_H
-#define EVM_RETURN_DATA_INTERNAL_H
+#pragma once
 
 #include "evm/common_internal.h"
 
@@ -20,5 +19,3 @@ void sha256_hash(const uint8_t *data, size_t data_size, uint8_t out[32]);
 void ripemd160_hash(const uint8_t *data, size_t data_size, uint8_t out[20]);
 bool precompile_try_charge_gas(EVM_State *vm, uint64_t cost);
 EVM_Status set_zero_return_data_bytes(EVM_State *vm, size_t size);
-
-#endif

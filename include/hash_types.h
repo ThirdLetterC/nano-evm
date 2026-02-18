@@ -3,8 +3,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-#ifndef HASH_TYPES_H
-#define HASH_TYPES_H
+#pragma once
 
 #include <stdint.h>
 
@@ -29,5 +28,3 @@ union ethash_hash1024 {
   uint8_t bytes[128];
   char str[128];
 };
-
-#endif

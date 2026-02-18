@@ -3,8 +3,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-#ifndef KECCAK_H
-#define KECCAK_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -38,5 +37,3 @@
 [[nodiscard]] union ethash_hash512 ethash_keccak512(const uint8_t *data,
                                                     size_t size);
 [[nodiscard]] union ethash_hash512 ethash_keccak512_64(const uint8_t data[64]);
-
-#endif
